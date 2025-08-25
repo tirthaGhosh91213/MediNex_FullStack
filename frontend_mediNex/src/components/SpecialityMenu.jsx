@@ -31,6 +31,7 @@ const SpecialityMenu = () => {
           >
             <Link
               to={`/doctors/${item.specialty}`}
+              onClick={()=>scrollTo()}
               className="flex flex-col items-center bg-white shadow-md rounded-2xl p-6 hover:shadow-2xl hover:bg-blue-50 transition-all duration-300 border border-gray-100 group"
             >
               {/* If you have icons/images inside `specialityData`, render them here */}

@@ -30,20 +30,20 @@ const SpecialityMenu = () => {
             transition={{ duration: 0.4, delay: index * 0.1 }}
           >
             <Link
-              to={`/doctors/${item.specialty}`}
-              onClick={()=>scrollTo()}
+              to={`/doctors/${item.specilaty}`}
+              onClick={()=>scrollTo(0,0)}
               className="flex flex-col items-center bg-white shadow-md rounded-2xl p-6 hover:shadow-2xl hover:bg-blue-50 transition-all duration-300 border border-gray-100 group"
             >
               {/* If you have icons/images inside `specialityData`, render them here */}
               {item.icon && (
                 <img
                   src={item.icon}
-                  alt={item.specialty}
+                  alt={item.specilaty}
                   className="w-14 h-14 mb-4 group-hover:scale-110 transition-transform duration-300"
                 />
               )}
               <p className="text-gray-700 font-semibold text-lg group-hover:text-blue-600 transition-colors">
-                {item.specialty}
+                {item.specilaty}
               </p>
             </Link>
           </motion.div>

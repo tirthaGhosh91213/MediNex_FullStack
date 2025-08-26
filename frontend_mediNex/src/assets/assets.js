@@ -9,18 +9,19 @@ export const assets = {
   singleDoctorRemovebg,
 };
 export const specialityData = [
-  { specialty: "Cardiologist" },
-  { specialty: "Dermatologist" },
-  { specialty: "Pediatrician" },
-  { specialty: "Neurologist" },
-  { specialty: "Endocrinologist" },
+  { specilaty: "Cardiologist" },
+  { specilaty: "Dermatologist" },
+  { specilaty: "Pediatrician" },
+  { specilaty: "Neurologist" },
+  { specilaty: "Endocrinologist" },
+  { specilaty: "GNF" },
 ];
 export const doctors = [
   {
     _id: 'doc1',
     name: 'Dr. Richard James',
     image: doctor1,
-    speciality: 'General Physician',
+    specilaty: 'GNF',
     degree: 'MBBS',
     experience: '4 Years',
     about: 'Dr. Richard has a strong commitment to delivering quality healthcare.',
@@ -34,7 +35,7 @@ export const doctors = [
     _id: 'doc2',
     name: 'Dr. Emily Carter',
     image: doc2,
-    speciality: 'Dermatologist',
+    specilaty: 'Dermatologist',
     degree: 'MD Dermatology',
     experience: '6 Years',
     about: 'Dr. Emily specializes in skin treatments and cosmetic dermatology.',
@@ -48,7 +49,7 @@ export const doctors = [
     _id: 'doc3',
     name: 'Dr. Michael Thompson',
     image: doc3,
-    speciality: 'Cardiologist',
+    specilaty: 'Cardiologist',
     degree: 'MD Cardiology',
     experience: '10 Years',
     about: 'Dr. Michael is an expert in heart diseases and preventive cardiology.',

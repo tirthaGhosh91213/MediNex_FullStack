@@ -16,7 +16,7 @@ const Footer = () => {
           className="space-y-4"
         >
           <h1 className="text-3xl font-extrabold text-white">
-            Medi<span className="text-blue-400">/</span>Nex
+            Medi<span className="text-blue-400">/Nex</span >
           </h1>
           <p className="text-gray-400 leading-relaxed">
             Your trusted healthcare partner. Book appointments with the best
@@ -27,7 +27,7 @@ const Footer = () => {
           <div className="flex gap-4 mt-4">
             <motion.a
               whileHover={{ scale: 1.2 }}
-              href="https://linkedin.com"
+              href="https://www.linkedin.com/in/tirtha-ghosh-098a072ba/"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-full bg-gray-700 hover:bg-blue-500 transition"
@@ -36,7 +36,7 @@ const Footer = () => {
             </motion.a>
             <motion.a
               whileHover={{ scale: 1.2 }}
-              href="https://github.com"
+              href="https://github.com/tirthaGhosh91213"
               target="_blank"
               rel="noopener noreferrer"
               className="p-2 rounded-full bg-gray-700 hover:bg-purple-500 transition"

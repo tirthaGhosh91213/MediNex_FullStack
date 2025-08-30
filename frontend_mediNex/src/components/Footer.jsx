@@ -19,7 +19,7 @@ const Footer = () => {
             Medi<span className="text-blue-400">/Nex</span >
           </h1>
           <p className="text-gray-400 leading-relaxed">
-            Your trusted healthcare partner. Book appointments with the best
+            Your trusted  healthcare partner. Book appointments with the best
             doctors at your convenience.
           </p>
 

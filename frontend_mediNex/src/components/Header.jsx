@@ -21,7 +21,7 @@ const Header = () => {
         >
           <h1 className="text-3xl md:text-5xl font-extrabold text-gray-800 leading-snug">
             Book Appointment <br /> with{" "}
-            <span className="text-blue-600"> Trusted Doctor</span>
+            <span className="text-blue-600">Trusted Doctor</span>
           </h1>
 
           {/* Feature */}

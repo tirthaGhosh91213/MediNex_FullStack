@@ -20,7 +20,7 @@ const Header = () => {
           className="flex-1 space-y-8 text-center md:text-left"
         >
           <h1 className="text-3xl md:text-5xl font-extrabold text-gray-800 leading-snug">
-            Book Appointment  <br /> with{" "}
+            Book Appointment <br /> with{" "}
             <span className="text-blue-600">Trusted Doctor</span>
           </h1>
 

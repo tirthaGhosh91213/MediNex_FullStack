@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react"; // icons
 
-const Navbar = () => {
+const Navbar = ()  => {
   const navigate = useNavigate();
   const [token, setToken] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);

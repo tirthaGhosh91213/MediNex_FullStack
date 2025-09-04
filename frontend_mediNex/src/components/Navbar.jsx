@@ -90,7 +90,7 @@ const Navbar = () => {
             }`
           }
         >
-          <Phone size={18} /> Contact
+          <Phone size={18} />  Contact
         </NavLink>
       </ul>
 

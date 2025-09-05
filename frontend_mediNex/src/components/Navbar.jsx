@@ -184,7 +184,7 @@ const Navbar = () => {
             onClick={() => setMenuOpen(false)}
             className="flex items-center gap-2 px-3 py-2 rounded-md text-gray-700 hover:bg-blue-100"
           >
-            <Info size={18} /> About
+            <Info size={18} />  About
           </NavLink>
           <NavLink
             to="/contact"

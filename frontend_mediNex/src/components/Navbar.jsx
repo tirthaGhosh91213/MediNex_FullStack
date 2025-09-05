@@ -120,7 +120,7 @@ const Navbar = () => {
                     }}
                     className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 rounded-md transition"
                   >
-                    <User size={16} /> My Profile
+                    <User size={16} /> My  Profile
                   </button>
                   <button
                     onClick={() => {

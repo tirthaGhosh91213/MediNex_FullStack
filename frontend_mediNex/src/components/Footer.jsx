@@ -7,7 +7,7 @@ const Footer = () => {
   return (
     <footer className="bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 text-gray-200 pt-12 pb-6 px-6 md:px-20">
       {/* Top Section */}
-      <div className="grid grid-cols-1  md:grid-cols-3 gap-10 border-b border-gray-600 pb-10">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10 border-b border-gray-600 pb-10">
         {/* Brand */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

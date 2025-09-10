@@ -24,7 +24,7 @@ export const doctors = [
     specilaty: 'GNF',
     degree: 'MBBS',
     experience: '4 Years',
-    about: 'Dr. Richard has a strong commitment to delivering quality healthcare.',
+    about: 'Dr.  Richard has a strong commitment to delivering quality healthcare.',
     fees: 50,
     address: {
       line1: '17th Cross, Richmond',

@@ -36,7 +36,7 @@ export const doctors = [
     name: 'Dr. Emily Carter',
     image: doc2,
     specilaty: 'Dermatologist',
-    degree: 'MD Dermatology',
+    degree: 'MD  Dermatology',
     experience: '6 Years',
     about: 'Dr. Emily specializes in skin treatments and cosmetic dermatology.',
     fees: 70,

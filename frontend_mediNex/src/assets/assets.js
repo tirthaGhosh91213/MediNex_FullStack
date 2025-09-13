@@ -42,7 +42,7 @@ export const doctors = [
     fees: 70,
     address: {
       line1: '5th Avenue, Green Park',
-      line2: 'Downtown, New York',
+      line2: 'Downtown , New York',
     },
   },
   {

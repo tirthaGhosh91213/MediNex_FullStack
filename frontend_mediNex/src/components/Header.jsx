@@ -25,7 +25,7 @@ const Header = () => {
           </h1>
 
           {/* Feature */}
-          <div className="flex items-center gap-4 bg-gradient-to-r from-blue-50 to-white p-5 rounded-2xl shadow-md max-w-md mx-auto md:mx-0 border">
+          <div className="flex  items-center gap-4 bg-gradient-to-r from-blue-50 to-white p-5 rounded-2xl shadow-md max-w-md mx-auto md:mx-0 border">
             <img
               src={assets.singleDoctorRemovebg}
               alt="doctor icon"

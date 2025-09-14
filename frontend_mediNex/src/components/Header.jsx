@@ -10,7 +10,7 @@ const Header = () => {
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="flex flex-col md:flex-row p-8 items-center justify-between w-full max-w-6xl rounded-3xl bg-white/80 backdrop-blur-lg shadow-2xl border border-gray-200 p-10 md:p-14"
+        className="flex flex-col md:flex-row  p-8 items-center justify-between w-full max-w-6xl rounded-3xl bg-white/80 backdrop-blur-lg shadow-2xl border border-gray-200 p-10 md:p-14"
       >
         {/* Left */}
         <motion.div

@@ -109,7 +109,7 @@ const Footer = () => {
           </h2>
           <ul className="space-y-3">
             <li className="hover:text-blue-400 transition">
-              📞 +91  8348267151
+              📞 +91 8348267151
             </li>
             <li className="hover:text-blue-400 transition">
               ✉️ ghoshtirtha1234@gmail.com

@@ -36,13 +36,13 @@ export const doctors = [
     name: 'Dr. Emily Carter',
     image: doc2,
     specilaty: 'Dermatologist',
-    degree: 'MD Dermatology',
+    degree: 'MD  Dermatology',
     experience: '6 Years',
     about: 'Dr. Emily specializes in skin treatments and cosmetic dermatology.',
     fees: 70,
     address: {
       line1: '5th Avenue, Green Park',
-      line2: 'Downtown, New York',
+      line2: 'Downtown , New York',
     },
   },
   {

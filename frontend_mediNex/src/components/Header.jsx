@@ -10,14 +10,14 @@ const Header = () => {
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="flex flex-col md:flex-row p-8 items-center justify-between w-full max-w-6xl rounded-3xl bg-white/80 backdrop-blur-lg shadow-2xl border border-gray-200 p-10 md:p-14"
+        className="flex flex-col md:flex-row  p-8 items-center justify-between w-full max-w-6xl rounded-3xl bg-white/80 backdrop-blur-lg shadow-2xl border border-gray-200 p-10 md:p-14"
       >
         {/* Left */}
         <motion.div
           initial={{ x: -50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={{ duration: 1 }}
-          className="flex-1 space-y-8 text-center md:text-left"
+          className="flex-1 space-y-8  text-center md:text-left"
         >
           <h1 className="text-3xl md:text-5xl font-extrabold text-gray-800 leading-snug">
             Book Appointment <br /> with{" "}
@@ -25,7 +25,7 @@ const Header = () => {
           </h1>
 
           {/* Feature */}
-          <div className="flex items-center gap-4 bg-gradient-to-r from-blue-50 to-white p-5 rounded-2xl shadow-md max-w-md mx-auto md:mx-0 border">
+          <div className="flex  items-center gap-4 bg-gradient-to-r from-blue-50 to-white p-5 rounded-2xl shadow-md max-w-md mx-auto md:mx-0 border">
             <img
               src={assets.singleDoctorRemovebg}
               alt="doctor icon"

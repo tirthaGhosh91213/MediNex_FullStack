@@ -16,6 +16,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import RelatedDoct from "../components/RelatedDoct";
 
 // Appointments (Enhanced)
 // - Time slots are horizontal with smooth scrolling + snap
@@ -350,6 +351,7 @@ export default function Appointments() {
                 </button>
                 <button onClick={() => setBookingOpen(false)} className="flex-1 border px-4 py-2 rounded-lg">Cancel</button>
               </div>
+              <RelatedDoct docId={docId} specilaty={docInfo.specilaty}/>
             </motion.div>
           </motion.div>
         )}

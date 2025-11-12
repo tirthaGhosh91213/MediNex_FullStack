@@ -32,6 +32,20 @@ export const doctors = [
     },
   },
   {
+    _id: 'doc4',
+    name: 'Dr. Richard James',
+    image: doctor1,
+    specilaty: 'GNF',
+    degree: 'MBBS',
+    experience: '4 Years',
+    about: 'Dr. Richard has a strong commitment to delivering quality healthcare.',
+    fees: 50,
+    address: {
+      line1: '17th Cross, Richmond',
+      line2: 'Circle, Ring Road, London',
+    },
+  },
+  {
     _id: 'doc2',
     name: 'Dr. Emily Carter',
     image: doc2,

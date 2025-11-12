@@ -29,7 +29,7 @@ const TopDoctor = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: idx * 0.1 }}
             whileHover={{ scale: 1.05 }}
-            onClick={() => navigate(`/appointments/${item._id}`)}
+            onClick={() => {navigate(`/appointments/${item._id}`);scrollTo(0,0)}}
             className="cursor-pointer bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden group"
           >
             {/* Doctor Image */}

@@ -3,10 +3,17 @@ import singleDoctorRemovebg from "./sigle_doctor-removebg.png";
 import doctor1 from "./doc1.png"
 import doc2 from "./doc2.png"
 import doc3 from "./doc3.png"
+import profileImage from "./profile_image.png"
 
 export const assets = {
   doctor_group,
   singleDoctorRemovebg,
+  profileImage,
+  doc3,
+  doc2,
+  doctor1,
+
+
 };
 export const specialityData = [
   { specilaty: "Cardiologist" },

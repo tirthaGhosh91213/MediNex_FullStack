@@ -36,7 +36,7 @@ const Navbar = () => {
     <div className="flex items-center justify-between px-6 py-4 border-b border-gray-300 bg-white shadow-md relative">
       {/* Logo */}
       <h1
-        onClick={() => navigate("/")}
+        onClick={() => window.location.reload()}
         className="text-2xl font-bold text-blue-500 cursor-pointer"
       >
         Medi/Nex

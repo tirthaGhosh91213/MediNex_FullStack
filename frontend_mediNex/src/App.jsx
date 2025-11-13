@@ -1,21 +1,24 @@
 import React from "react";
-import { Route, Routes } from "react-router-dom";
-import HomePage from "./pages/HomePage";   // ✅ FIXED
+import { Route, Routes, useLocation } from "react-router-dom";
+import HomePage from "./pages/HomePage";
 import Doctors from "./pages/Doctors";
 import Login from "./pages/Login";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import MyProfile from "./pages/MyProfile";
 import MyAppinment from "./pages/MyAppinment";
-// import Appinment from "./pages/Appinment";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Appoinments from "./pages/Appoinments";
 
 function App() {
+  const location = useLocation();
+  
+  const showNavbar = location.pathname !== "/appointments";
+
   return (
     <>
-      <Navbar />
+      {showNavbar && <Navbar />}
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/doctors" element={<Doctors />} />
@@ -27,7 +30,7 @@ function App() {
         <Route path="/my-appointments" element={<MyAppinment />} />
         <Route path="/appointments/:docId" element={<Appoinments />} />
       </Routes>
-      <Footer/>
+      <Footer />
     </>
   );
 }

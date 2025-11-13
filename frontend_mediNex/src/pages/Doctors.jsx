@@ -6,14 +6,13 @@ import { AppContext } from "../context/AppContext";
 const norm = (s) => (s ? String(s).trim().toLowerCase() : "");
 
 const Doctors = () => {
-  // NOTE: route param is intentionally spelled "specilaty" to match your Route path
   const { specilaty } = useParams();
   const [filterDoc, setFilterDoc] = useState([]);
+  const [showFilter, setShowFilter] = useState(false);
   const navigate = useNavigate();
   const { doctors = [] } = useContext(AppContext);
 
   const applyFilter = () => {
-    // If a speciality is in the URL, match it against either doc.speciality or doc.specilaty
     if (specilaty) {
       const target = norm(specilaty);
       const next = doctors.filter((doc) => {
@@ -30,6 +29,15 @@ const Doctors = () => {
     applyFilter();
   }, [doctors, specilaty]);
 
+  const specialties = [
+    "Cardiologist",
+    "Dermatologist",
+    "Pediatrician",
+    "Neurologist",
+    "Endocrinologist",
+    "GNF"
+  ];
+
   return (
     <div className="px-6 sm:px-12 md:px-20 py-10 bg-gray-50 min-h-screen">
       {/* Title */}
@@ -45,12 +53,27 @@ const Doctors = () => {
         Choose from the best specialists and book your appointment instantly.
       </p>
 
-      {/* Speciality Filter (Sticky, transparent) */}
+      {/* Filter Button for mobile only */}
+      <button
+        type="button"
+        onClick={() => setShowFilter((prev) => !prev)}
+        className="sm:hidden block mb-4 px-5 py-2 rounded-full border font-medium shadow transition bg-white text-blue-600 hover:bg-blue-50"
+      >
+        {showFilter ? "Hide Filters" : "Show Filters"}
+      </button>
+
+      {/* Filter Bar */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7 }}
-        className="flex flex-wrap justify-center gap-3 mb-12 sticky top-0 z-20 backdrop-blur-md bg-white/30 py-3"
+        // On desktop: always show; on mobile: show when showFilter is true
+        className={`
+          flex flex-wrap justify-center gap-3 mb-12 sticky top-0 z-20 
+          backdrop-blur-md bg-white/30 py-3
+          ${showFilter ? "block" : "hidden"} 
+          sm:flex
+        `}
       >
         {/* All */}
         <motion.button
@@ -65,114 +88,26 @@ const Doctors = () => {
         >
           All
         </motion.button>
-
-        {/* Cardiologist */}
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={() =>
-            norm(specilaty) === "cardiologist"
-              ? navigate("/doctors")
-              : navigate("/doctors/Cardiologist")
-          }
-          className={`px-5 py-2 rounded-full border font-medium shadow-sm transition-all duration-300 ${
-            norm(specilaty) === "cardiologist"
-              ? "bg-blue-600 text-white shadow-lg"
-              : "bg-white/70 text-gray-700 hover:bg-blue-100 hover:text-blue-600"
-          }`}
-        >
-          Cardiologist
-        </motion.button>
-
-        {/* Dermatologist */}
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={() =>
-            norm(specilaty) === "dermatologist"
-              ? navigate("/doctors")
-              : navigate("/doctors/Dermatologist")
-          }
-          className={`px-5 py-2 rounded-full border font-medium shadow-sm transition-all duration-300 ${
-            norm(specilaty) === "dermatologist"
-              ? "bg-blue-600 text-white shadow-lg"
-              : "bg-white/70 text-gray-700 hover:bg-blue-100 hover:text-blue-600"
-          }`}
-        >
-          Dermatologist
-        </motion.button>
-
-        {/* Pediatrician */}
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={() =>
-            norm(specilaty) === "pediatrician"
-              ? navigate("/doctors")
-              : navigate("/doctors/Pediatrician")
-          }
-          className={`px-5 py-2 rounded-full border font-medium shadow-sm transition-all duration-300 ${
-            norm(specilaty) === "pediatrician"
-              ? "bg-blue-600 text-white shadow-lg"
-              : "bg-white/70 text-gray-700 hover:bg-blue-100 hover:text-blue-600"
-          }`}
-        >
-          Pediatrician
-        </motion.button>
-
-        {/* Neurologist */}
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={() =>
-            norm(specilaty) === "neurologist"
-              ? navigate("/doctors")
-              : navigate("/doctors/Neurologist")
-          }
-          className={`px-5 py-2 rounded-full border font-medium shadow-sm transition-all duration-300 ${
-            norm(specilaty) === "neurologist"
-              ? "bg-blue-600 text-white shadow-lg"
-              : "bg-white/70 text-gray-700 hover:bg-blue-100 hover:text-blue-600"
-          }`}
-        >
-          Neurologist
-        </motion.button>
-
-        {/* Endocrinologist */}
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={() =>
-            norm(specilaty) === "endocrinologist"
-              ? navigate("/doctors")
-              : navigate("/doctors/Endocrinologist")
-          }
-          className={`px-5 py-2 rounded-full border font-medium shadow-sm transition-all duration-300 ${
-            norm(specilaty) === "endocrinologist"
-              ? "bg-blue-600 text-white shadow-lg"
-              : "bg-white/70 text-gray-700 hover:bg-blue-100 hover:text-blue-600"
-          }`}
-        >
-          Endocrinologist
-        </motion.button>
-
-        {/* GNF */}
-        <motion.button
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.96 }}
-          onClick={() =>
-            norm(specilaty) === "gnf"
-              ? navigate("/doctors")
-              : navigate("/doctors/GNF")
-          }
-          className={`px-5 py-2 rounded-full border font-medium shadow-sm transition-all duration-300 ${
-            norm(specilaty) === "gnf"
-              ? "bg-blue-600 text-white shadow-lg"
-              : "bg-white/70 text-gray-700 hover:bg-blue-100 hover:text-blue-600"
-          }`}
-        >
-          GNF
-        </motion.button>
+        {/* Map specialties */}
+        {specialties.map((speciality) => (
+          <motion.button
+            key={speciality}
+            whileHover={{ scale: 1.08 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={() =>
+              norm(specilaty) === norm(speciality)
+                ? navigate("/doctors")
+                : navigate(`/doctors/${speciality}`)
+            }
+            className={`px-5 py-2 rounded-full border font-medium shadow-sm transition-all duration-300 ${
+              norm(specilaty) === norm(speciality)
+                ? "bg-blue-600 text-white shadow-lg"
+                : "bg-white/70 text-gray-700 hover:bg-blue-100 hover:text-blue-600"
+            }`}
+          >
+            {speciality}
+          </motion.button>
+        ))}
       </motion.div>
 
       {/* Doctors Grid */}
@@ -187,7 +122,6 @@ const Doctors = () => {
             onClick={() => navigate(`/appointments/${item._id}`)}
             className="cursor-pointer bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden group"
           >
-            {/* Doctor Image */}
             <div className="relative w-full h-60 overflow-hidden">
               <img
                 src={item.image}
@@ -198,8 +132,6 @@ const Doctors = () => {
                 Available
               </span>
             </div>
-
-            {/* Doctor Info */}
             <div className="p-5 text-center">
               <h2 className="text-lg font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">
                 {item.name}
@@ -214,7 +146,6 @@ const Doctors = () => {
           </motion.div>
         ))}
       </div>
-
       {/* No Doctor Found */}
       {filterDoc.length === 0 && (
         <motion.p

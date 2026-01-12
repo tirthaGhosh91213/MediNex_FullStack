@@ -157,7 +157,7 @@ export default function Appointments() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 min-h-screen pb-12 pt-8 px-4 md:px-10 flex flex-col items-center gap-6">
+    <div className="bg-gradient-to-br from-blue-50 via-white to-indigo-50 min-h-screen pb-12 pt-8 mt-10 px-4 md:px-10 flex flex-col items-center gap-6">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

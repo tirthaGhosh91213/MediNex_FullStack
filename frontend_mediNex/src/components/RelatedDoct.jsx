@@ -15,7 +15,7 @@ const RelatedDoct = ({docId,specilaty}) => {
   })
 
   return (
-    <div className="py-16 px-6 bg-gradient-to-b from-blue-50 via-white to-blue-100">
+    <div className="py-16 px-6">
       {/* Heading */}
       <div className="text-center mb-12">
         <h1 className="text-3xl md:text-4xl font-extrabold text-gray-800 mb-4">

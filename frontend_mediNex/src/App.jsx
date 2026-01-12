@@ -13,12 +13,13 @@ import Appoinments from "./pages/Appoinments";
 
 function App() {
   const location = useLocation();
-  
-  const showNavbar = location.pathname !== "/appointments";
+
+  const hideNavbar = location.pathname.startsWith("/appointments");
 
   return (
     <>
-      {showNavbar && <Navbar />}
+      {!hideNavbar && <Navbar />}
+
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/doctors" element={<Doctors />} />
@@ -30,6 +31,7 @@ function App() {
         <Route path="/my-appointments" element={<MyAppinment />} />
         <Route path="/appointments/:docId" element={<Appoinments />} />
       </Routes>
+
       <Footer />
     </>
   );

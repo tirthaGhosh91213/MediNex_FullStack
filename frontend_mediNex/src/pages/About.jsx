@@ -1,4 +1,6 @@
 import React from "react";
+import { motion } from "framer-motion";
+import { Target, Heart, Eye, ShieldCheck, Clock } from "lucide-react";
 import { assets } from "../assets/assets";
 
 const features = [
@@ -20,73 +22,157 @@ const features = [
 ];
 
 const About = () => {
+  // Animation configurations (matches Contact page)
+  const fadeUpVariant = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+  };
+
+  const staggerContainer = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.2 },
+    },
+  };
+
   return (
-    <div className="bg-gradient-to-tr from-blue-50 via-white to-blue-100 min-h-screen flex flex-col items-center px-4 py-12">
-      {/* About Us Section */}
-      <div className="max-w-5xl w-full flex flex-col md:flex-row items-center gap-12 md:gap-20 mb-12 relative">
-        {/* Left: Animated Text */}
-        <div className="flex-1 z-10">
-          <h2 className="text-5xl md:text-6xl font-extrabold text-blue-700 mb-8 animate-fade-in-down">
-            About <span className="bg-gradient-to-r from-blue-400 to-indigo-500 text-transparent bg-clip-text animate-pulse">US</span>
-          </h2>
-          <p className="text-lg text-gray-700 mb-6 animate-fade-in">
-            Welcome to our medical community! We unite skilled doctors, caring staff, and digital convenience to help you feel your best.
-          </p>
-          <div className="flex items-center gap-6 mt-6">
-            <span className="inline-block px-5 py-2 bg-blue-200 text-blue-700 font-semibold rounded-full shadow hover:scale-105 transition-transform animate-bounce">Trusted by thousands</span>
-            <span className="inline-block px-5 py-2 bg-white bg-opacity-60 backdrop-blur text-indigo-700 font-semibold rounded-full border border-blue-100 shadow hover:scale-105 transition-transform animate-pulse">24/7 Support</span>
-          </div>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center px-4 py-16 sm:py-24">
+      
+      {/* Page Header */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7 }}
+        className="text-center mb-16 max-w-2xl"
+      >
+        <h2 className="text-4xl md:text-5xl font-bold text-slate-900 tracking-tight mb-4">
+          About <span className="text-blue-600">Us</span>
+        </h2>
+        <div className="h-1.5 w-20 mx-auto rounded-full bg-blue-600 mb-6"></div>
+        <p className="text-lg text-slate-600">
+          We unite skilled doctors, caring staff, and digital convenience to help you feel your best.
+        </p>
+      </motion.div>
+
+      {/* Hero Section */}
+      <motion.div 
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+        className="max-w-6xl w-full flex flex-col md:flex-row items-center gap-12 md:gap-20 mb-20"
+      >
+        {/* Left: Text & Badges */}
+        <div className="flex-1 w-full order-2 md:order-1">
+          <motion.h3 variants={fadeUpVariant} className="text-3xl font-bold text-slate-800 mb-6 leading-tight">
+            Committed to your health and well-being.
+          </motion.h3>
+          <motion.p variants={fadeUpVariant} className="text-lg text-slate-600 mb-8 leading-relaxed">
+            Welcome to our medical community. Our goal is to provide accessible, high-quality healthcare using modern technology without losing the human touch. We believe in building lasting relationships with our patients based on trust and transparency.
+          </motion.p>
+          
+          <motion.div variants={fadeUpVariant} className="flex flex-wrap gap-4 mt-6">
+            <div className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 text-blue-700 font-semibold rounded-full border border-blue-100">
+              <ShieldCheck size={18} />
+              Trusted by thousands
+            </div>
+            <div className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 font-semibold rounded-full border border-slate-200 shadow-sm">
+              <Clock size={18} className="text-blue-600" />
+              24/7 Support
+            </div>
+          </motion.div>
         </div>
-        {/* Right: Image With Layered Effects */}
-        <div className="flex-1 flex justify-center items-center relative animate-float">
-          <div className="absolute -z-10 w-64 h-64 bg-blue-100 rounded-full blur-2xl opacity-60 animate-pulse"></div>
+
+        {/* Right: Image */}
+        <motion.div variants={fadeUpVariant} className="flex-1 w-full flex justify-center items-center relative order-1 md:order-2">
+          <div className="absolute inset-0 bg-blue-200 rounded-full blur-3xl opacity-30 transform translate-x-10 translate-y-10"></div>
           <img
             src={assets.doctor_group}
             alt="Doctor team"
-            className="w-72 h-72 object-cover rounded-2xl shadow-xl border-4 border-white transition-transform hover:scale-105 animate-fade-in"
+            className="relative w-full max-w-md object-cover rounded-3xl shadow-2xl border-8 border-white z-10"
           />
-        </div>
-      </div>
-      {/* Extra info cards (e.g. mission/vision/stats) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl mb-12">
-        <div className="bg-white/80 border border-blue-100 p-6 rounded-2xl shadow-lg transition duration-300 hover:-translate-y-1 hover:scale-105 animate-slide-in-up">
-          <h3 className="font-bold text-blue-700 text-xl mb-2">Our Mission</h3>
-          <p className="text-gray-600">Providing accessible, empathetic care powered by technology and compassion.</p>
-        </div>
-        <div className="bg-white/80 border border-blue-100 p-6 rounded-2xl shadow-lg transition duration-300 hover:-translate-y-1 hover:scale-105 animate-slide-in-up delay-100">
-          <h3 className="font-bold text-blue-700 text-xl mb-2">Our Values</h3>
-          <p className="text-gray-600">Authenticity, professional ethics, and commitment to patient wellbeing.</p>
-        </div>
-        <div className="bg-white/80 border border-blue-100 p-6 rounded-2xl shadow-lg transition duration-300 hover:-translate-y-1 hover:scale-105 animate-slide-in-up delay-200">
-          <h3 className="font-bold text-blue-700 text-xl mb-2">Our Vision</h3>
-          <p className="text-gray-600">Empowering healthier communities through innovative care for all ages.</p>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
+
+      {/* Core Values (Mission, Vision, Values) */}
+      <motion.div 
+        variants={staggerContainer}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        className="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl mb-24"
+      >
+        {/* Mission */}
+        <motion.div variants={fadeUpVariant} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-lg hover:shadow-xl transition-shadow group">
+          <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform">
+            <Target size={28} />
+          </div>
+          <h3 className="font-bold text-slate-900 text-xl mb-3">Our Mission</h3>
+          <p className="text-slate-600 leading-relaxed">Providing accessible, empathetic care powered by modern technology and genuine compassion.</p>
+        </motion.div>
+
+        {/* Values */}
+        <motion.div variants={fadeUpVariant} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-lg hover:shadow-xl transition-shadow group">
+          <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform">
+            <Heart size={28} />
+          </div>
+          <h3 className="font-bold text-slate-900 text-xl mb-3">Our Values</h3>
+          <p className="text-slate-600 leading-relaxed">Authenticity, uncompromising professional ethics, and a steadfast commitment to patient wellbeing.</p>
+        </motion.div>
+
+        {/* Vision */}
+        <motion.div variants={fadeUpVariant} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-lg hover:shadow-xl transition-shadow group">
+          <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 transition-transform">
+            <Eye size={28} />
+          </div>
+          <h3 className="font-bold text-slate-900 text-xl mb-3">Our Vision</h3>
+          <p className="text-slate-600 leading-relaxed">Empowering healthier communities through innovative, comprehensive care for patients of all ages.</p>
+        </motion.div>
+      </motion.div>
+
       {/* Why Choose Us Section */}
-      <div className="w-full max-w-4xl mb-8">
-        <h2 className="text-4xl md:text-5xl font-extrabold text-center text-blue-700 mb-8 animate-fade-in-down">
-          WHY <span className="bg-gradient-to-r from-indigo-400 to-blue-500 text-transparent bg-clip-text animate-pulse">CHOOSE US</span>
-        </h2>
-        <div className="flex flex-col md:flex-row gap-10 justify-center items-center">
+      <div className="w-full max-w-6xl">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">
+            Why <span className="text-blue-600">Choose Us</span>
+          </h2>
+          <p className="text-slate-600 max-w-2xl mx-auto">
+            We blend expertise with convenience to deliver a seamless healthcare experience.
+          </p>
+        </motion.div>
+
+        <motion.div 
+          variants={staggerContainer}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-8"
+        >
           {features.map((item, idx) => (
-            <div
+            <motion.div
               key={item.title}
-              className={`flex flex-col items-center bg-white/90 border border-blue-200 rounded-2xl p-6 w-72 shadow-xl transition-transform hover:-translate-y-2 hover:scale-105 animate-pop-in delay-${idx * 100}`}
+              variants={fadeUpVariant}
+              className="flex flex-col items-center text-center bg-white border border-slate-100 rounded-3xl p-8 shadow-sm hover:shadow-md transition-all hover:-translate-y-1"
             >
-              <img
-                src={item.icon}
-                alt={item.title}
-                className="w-14 h-14 mb-4 animate-bounce"
-              />
-              <h3 className="font-bold text-lg text-blue-700 mb-1">{item.title}</h3>
-              <p className="text-gray-600 text-center">{item.desc}</p>
-            </div>
+              <div className="p-4 bg-slate-50 rounded-full mb-6">
+                <img
+                  src={item.icon}
+                  alt={item.title}
+                  className="w-12 h-12 object-contain"
+                />
+              </div>
+              <h3 className="font-bold text-lg text-slate-900 mb-3">{item.title}</h3>
+              <p className="text-slate-600">{item.desc}</p>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
-      {/* Animations via Tailwind (extend with keyframes below in your Tailwind config) */}
-      {/* suggestions: fade-in, bounce, pop-in, float, slide-in-up */}
-      {/* For glassmorphism, use bg-white/60 + backdrop-blur + border. */}
+
     </div>
   );
 };

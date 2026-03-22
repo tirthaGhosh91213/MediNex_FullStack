@@ -10,7 +10,12 @@ import MyAppinment from "./pages/MyAppinment";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Appoinments from "./pages/Appoinments";
-
+import DashboardHome from "../Broker_UI/components/DashboardHome";
+import AllDoctors from "../Broker_UI/components/AllDoctors";
+import AddDoctor from "../Broker_UI/components/AddDoctor";
+import AllAppointments from "../Broker_UI/components/AllAppointments";
+import AdminProfile from "../Broker_UI/components/AdminProfile";
+import AdminLayout from "../Broker_UI/components/AdminLayout";
 function App() {
   const location = useLocation();
 
@@ -30,6 +35,13 @@ function App() {
         <Route path="/my-profile" element={<MyProfile />} />
         <Route path="/my-appointments" element={<MyAppinment />} />
         <Route path="/appointments/:docId" element={<Appoinments />} />
+        <Route path="/doc-chambers" element={<AdminLayout />}>
+          <Route index element={<DashboardHome />} /> 
+          <Route path="alldoctors" element={<AllDoctors />} />
+          <Route path="add-doctors" element={<AddDoctor />} />
+          <Route path="all-appointments" element={<AllAppointments />} />
+          <Route path="profile" element={<AdminProfile />} />
+        </Route>
       </Routes>
 
       <Footer />

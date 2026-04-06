@@ -16,6 +16,7 @@ import AddDoctor from "../Broker_UI/components/AddDoctor";
 import AllAppointments from "../Broker_UI/components/AllAppointments";
 import AdminProfile from "../Broker_UI/components/AdminProfile";
 import AdminLayout from "../Broker_UI/components/AdminLayout";
+import DoctorRequestApproval from "../Broker_UI/components/DoctorRequestApproval";
 function App() {
   const location = useLocation();
 
@@ -41,6 +42,7 @@ function App() {
           <Route path="add-doctors" element={<AddDoctor />} />
           <Route path="all-appointments" element={<AllAppointments />} />
           <Route path="profile" element={<AdminProfile />} />
+          <Route path="doctor-requests" element={<DoctorRequestApproval />} />
         </Route>
       </Routes>
 

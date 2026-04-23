@@ -2,51 +2,88 @@ import React from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import Doctors from "./pages/Doctors";
-import Login from "./pages/Login";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
-import MyProfile from "./pages/MyProfile";
-import MyAppinment from "./pages/MyAppinment";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import Appoinments from "./pages/Appoinments";
-import DashboardHome from "../Broker_UI/components/DashboardHome";
-import AllDoctors from "../Broker_UI/components/AllDoctors";
-import AddDoctor from "../Broker_UI/components/AddDoctor";
-import AllAppointments from "../Broker_UI/components/AllAppointments";
-import AdminProfile from "../Broker_UI/components/AdminProfile";
-import AdminLayout from "../Broker_UI/components/AdminLayout";
-import DoctorRequestApproval from "../Broker_UI/components/DoctorRequestApproval";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+// Patient Imports
+import PatientLayout from "./pages/Patient/PatientLayout";
+import PatientDashboard from "./pages/Patient/PatientDashboard";
+import MyBookings from "./pages/Patient/MyBookings";
+import HealthVault from "./pages/Patient/HealthVault";
+
+// Broker Imports
+import BrokerLayout from "./pages/Broker/BrokerLayout";
+import BrokerOverview from "./pages/Broker/Dashboard/BrokerOverview";
+import ManageDoctors from "./pages/Broker/Doctors/ManageDoctors";
+import BookingRequests from "./pages/Broker/Bookings/BookingRequests";
+import LiveQueue from "./pages/Broker/Queue/LiveQueue";
+
+// Admin Imports
+import AdminLayout from "./pages/Admin/AdminLayout";
+import AdminOverview from "./pages/Admin/AdminOverview";
+import ApprovalQueue from "./pages/Admin/ApprovalQueue";
+import AdminMasterManagement from "./pages/Admin/AdminMasterManagement";
+
 function App() {
   const location = useLocation();
-
-  const hideNavbar = location.pathname.startsWith("/appointments");
+  const hideNavbar = location.pathname.startsWith("/appointments") || 
+                     location.pathname.startsWith("/login") || 
+                     location.pathname.startsWith("/register") ||
+                     location.pathname.startsWith("/admin") ||
+                     location.pathname.startsWith("/broker") ||
+                     location.pathname.startsWith("/patient");
 
   return (
     <>
       {!hideNavbar && <Navbar />}
 
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route path="/doctors" element={<Doctors />} />
-        <Route path="/doctors/:specilaty" element={<Doctors />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/doctors/:specialty" element={<Doctors />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
-        <Route path="/my-profile" element={<MyProfile />} />
-        <Route path="/my-appointments" element={<MyAppinment />} />
-        <Route path="/appointments/:docId" element={<Appoinments />} />
-        <Route path="/doc-chambers" element={<AdminLayout />}>
-          <Route index element={<DashboardHome />} /> 
-          <Route path="alldoctors" element={<AllDoctors />} />
-          <Route path="add-doctors" element={<AddDoctor />} />
-          <Route path="all-appointments" element={<AllAppointments />} />
-          <Route path="profile" element={<AdminProfile />} />
-          <Route path="doctor-requests" element={<DoctorRequestApproval />} />
+
+        {/* Protected Patient Routes */}
+        <Route element={<ProtectedRoute allowedRole="Patient" />}>
+          <Route path="/patient" element={<PatientLayout />}>
+            <Route path="dashboard" element={<PatientDashboard />} />
+            <Route path="my-bookings" element={<MyBookings />} />
+            <Route path="vault" element={<HealthVault />} />
+          </Route>
         </Route>
+
+        {/* Protected Broker Routes */}
+        <Route element={<ProtectedRoute allowedRole="Broker" />}>
+          <Route path="/broker" element={<BrokerLayout />}>
+            <Route path="dashboard" element={<BrokerOverview />} />
+            <Route path="doctors" element={<ManageDoctors />} />
+            <Route path="appointments" element={<BookingRequests />} />
+            <Route path="queue" element={<LiveQueue />} />
+          </Route>
+        </Route>
+
+        {/* Protected Admin Routes */}
+        <Route element={<ProtectedRoute allowedRole="Admin" />}>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<AdminOverview />} />
+            <Route path="approvals" element={<ApprovalQueue />} />
+            <Route path="master" element={<AdminMasterManagement />} />
+          </Route>
+        </Route>
+
+        <Route path="*" element={<div className="p-10 text-center text-xl text-red-600 font-bold">404 - Page Not Found</div>} />
       </Routes>
 
-      <Footer />
+      {!hideNavbar && <Footer />}
     </>
   );
 }

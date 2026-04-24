@@ -74,6 +74,14 @@ const brokerSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    owner_aadhar: {
+      type: String,
+      required: [true, "Owner Aadhar card image is required"],
+    },
+    clinic_license: {
+      type: String,
+      required: [true, "Clinic license document/image is required"],
+    },
     // Admin must approve the broker before they can add doctors / accept bookings
     is_approved: {
       type: Boolean,

@@ -72,7 +72,7 @@ const BrokerOverview = () => {
         className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6"
       >
         {stats.map((stat, i) => (
-          <motion.variants key={i} variants={itemVariants}>
+          <motion.div key={i} variants={itemVariants}>
             <div className={`p-6 rounded-3xl border shadow-sm flex flex-col h-full bg-white relative overflow-hidden group hover:shadow-lg transition-all duration-300`}>
                 <div className="flex justify-between items-start mb-4">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${stat.color} ${stat.pulse ? 'animate-pulse' : ''}`}>
@@ -94,7 +94,7 @@ const BrokerOverview = () => {
                    <p className="text-sm font-medium text-slate-400 mt-2">{stat.trend}</p>
                 </div>
             </div>
-          </motion.variants>
+          </motion.div>
         ))}
       </motion.div>
       

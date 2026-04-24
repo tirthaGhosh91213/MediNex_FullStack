@@ -7,6 +7,8 @@ import {
   approveBroker,
   getPendingDoctors,
   verifyDoctor,
+  getNotifications,
+  clearNotifications,
 } from "../controllers/adminController.js";
 import { verifyToken, isAdmin } from "../middleware/auth.js";
 
@@ -44,5 +46,9 @@ adminRouter.put("/brokers/approve/:brokerId", verifyToken, isAdmin, approveBroke
 // ── Phase 2: Doctor Verification Workflow ───────────────────────
 adminRouter.get("/doctors/pending", verifyToken, isAdmin, getPendingDoctors);
 adminRouter.put("/doctors/verify/:doctorId", verifyToken, isAdmin, verifyDoctor);
+
+// ── Notifications ─────────────────────────────────────────────────
+adminRouter.get("/notifications", verifyToken, isAdmin, getNotifications);
+adminRouter.delete("/notifications/clear", verifyToken, isAdmin, clearNotifications);
 
 export default adminRouter;

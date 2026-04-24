@@ -6,6 +6,8 @@ import {
   addDoctor,
   getBrokerDoctors,
   updateBrokerLocation,
+  getBrokerNotifications,
+  clearBrokerNotifications,
 } from "../controllers/brokerController.js";
 import {
   getBrokerBookings,
@@ -14,6 +16,7 @@ import {
   completeWithPrescription,
 } from "../controllers/bookingController.js";
 import { verifyToken, isBroker } from "../middleware/auth.js";
+import { upload } from "../config/cloudinary.js";
 
 const brokerRouter = express.Router();
 
@@ -43,14 +46,20 @@ const brokerRouter = express.Router();
  */
 
 // ── Public routes ───────────────────────────────────────────────
-brokerRouter.post("/register", registerBroker);
+brokerRouter.post("/register", upload.fields([
+  { name: 'aadhar', maxCount: 1 },
+  { name: 'license', maxCount: 1 }
+]), registerBroker);
 brokerRouter.post("/login", loginBroker);
 
 // ── Protected routes (requires valid JWT + broker role) ─────────
 brokerRouter.get("/profile", verifyToken, isBroker, getBrokerProfile);
 
 // ── Phase 2: Doctor Onboarding ──────────────────────────────────
-brokerRouter.post("/doctors/add", verifyToken, isBroker, addDoctor);
+brokerRouter.post("/doctors/add", verifyToken, isBroker, upload.fields([
+  { name: 'avatar', maxCount: 1 },
+  { name: 'registration_certificate', maxCount: 1 },
+]), addDoctor);
 brokerRouter.get("/doctors", verifyToken, isBroker, getBrokerDoctors);
 
 // ── Phase 4: Booking Management ─────────────────────────────────
@@ -67,5 +76,9 @@ brokerRouter.put("/bookings/:bookingId/complete", verifyToken, isBroker, complet
 // ── Phase 8: Access Health Vault ────────────────────────────────
 import { getPatientRecords } from "../controllers/brokerController.js";
 brokerRouter.get("/patient-records/:patientId", verifyToken, isBroker, getPatientRecords);
+
+// ── Notifications ───────────────────────────────────────────────
+brokerRouter.get("/notifications", verifyToken, isBroker, getBrokerNotifications);
+brokerRouter.delete("/notifications/clear", verifyToken, isBroker, clearBrokerNotifications);
 
 export default brokerRouter;

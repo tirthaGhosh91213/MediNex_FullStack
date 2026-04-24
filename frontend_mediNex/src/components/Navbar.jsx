@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import {
   Home,
   Users,
@@ -16,7 +17,7 @@ import {
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const [token, setToken] = useState(true);
+  const { token, logout, user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -47,7 +48,6 @@ const Navbar = () => {
       <ul className="hidden md:flex items-center gap-2 font-medium">
         {[
           { path: "/", label: "Home", icon: Home },
-          { path: "/doctors", label: "All Doctors", icon: Users },
           { path: "/about", label: "About", icon: Info },
           { path: "/contact", label: "Contact", icon: Phone }
         ].map((item) => (
@@ -121,7 +121,7 @@ const Navbar = () => {
 
                   <button
                     onClick={() => {
-                      setToken(false);
+                      logout();
                       setProfileOpen(false);
                     }}
                     className="flex items-center gap-3 px-3 py-2.5 hover:bg-rose-50 text-rose-600 rounded-lg transition-colors text-sm font-medium"
@@ -137,7 +137,7 @@ const Navbar = () => {
             onClick={() => navigate("/login")}
             className="bg-blue-600 text-white px-6 py-2.5 rounded-full font-semibold text-sm hover:bg-blue-700 hover:shadow-md transition-all active:scale-95"
           >
-            Create Account
+            Get Started
           </button>
         )}
 
@@ -155,7 +155,6 @@ const Navbar = () => {
         <div className="absolute top-full left-0 w-full bg-white border-b border-slate-200 shadow-lg md:hidden flex flex-col p-4 space-y-1 z-50">
           {[
             { path: "/", label: "Home", icon: Home },
-            { path: "/doctors", label: "All Doctors", icon: Users },
             { path: "/about", label: "About", icon: Info },
             { path: "/contact", label: "Contact", icon: Phone }
           ].map((item) => (

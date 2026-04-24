@@ -34,6 +34,8 @@ const doctorSchema = new mongoose.Schema(
     phone: {
       type: String,
       default: "",
+      // Private - only visible to clinic (broker) and admin, NOT patients
+      select: true,
     },
     specialization: {
       type: String,
@@ -68,14 +70,35 @@ const doctorSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    // Medical registration certificate image (private)
+    registration_certificate: {
+      type: String,
+      default: "",
+    },
+    // Weekly schedule: [{day, from, to, max_patients}]
+    schedule: {
+      type: [
+        {
+          day: { type: String, required: true }, // "Monday", "Tuesday" etc.
+          from: { type: String, required: true }, // "10:00"
+          to: { type: String, required: true },   // "13:30"
+          max_patients: { type: Number, default: 20 },
+        },
+      ],
+      default: [],
+    },
+    max_patients_per_day: {
+      type: Number,
+      default: 20,
+    },
     // Admin verifies the doctor's credentials before they go live
     is_verified: {
       type: Boolean,
       default: false,
     },
-    // Available time slots (can be expanded later)
+    // Legacy simple slots (kept for backwards compatibility)
     available_slots: {
-      type: [String], // e.g. ["10:00 AM", "10:30 AM", "11:00 AM"]
+      type: [String],
       default: [],
     },
     // Phase 8: Review & Rating System

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { Check, X, Building2, UserCircle2, Loader2, FileText } from "lucide-react";
-import { motion } from "framer-motion";
+import { Check, X, Building2, UserCircle2, Loader2, FileText, ShieldCheck } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const ApprovalQueue = () => {
   const [activeTab, setActiveTab] = useState("brokers"); // "brokers" | "doctors"

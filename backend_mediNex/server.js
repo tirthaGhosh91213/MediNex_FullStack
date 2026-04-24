@@ -70,6 +70,7 @@ connectDB();
 // ── Global Middleware ───────────────────────────────────────────
 app.use(express.json()); // Parse JSON request bodies
 app.use(cors()); // Enable CORS for frontend requests
+app.use("/uploads", express.static("uploads")); // Serve uploaded images
 
 // ── Health Check ────────────────────────────────────────────────
 app.get("/", (req, res) => {

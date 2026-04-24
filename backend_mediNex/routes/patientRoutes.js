@@ -4,6 +4,7 @@ import {
   loginPatient,
   getPatientProfile,
   searchDoctors,
+  getDoctorDetails,
   createBooking,
   getMyBookings,
 } from "../controllers/patientController.js";
@@ -36,7 +37,8 @@ patientRouter.post("/login", loginPatient);
 patientRouter.get("/profile", verifyToken, getPatientProfile);
 
 // ── Phase 3: Doctor Search & Filter ─────────────────────────────
-patientRouter.get("/doctors", verifyToken, searchDoctors);
+patientRouter.get("/doctors", searchDoctors);
+patientRouter.get("/doctors/:id", verifyToken, getDoctorDetails);
 
 // ── Phase 3: Smart Booking System ───────────────────────────────
 patientRouter.post("/book", verifyToken, createBooking);

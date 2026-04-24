@@ -174,6 +174,54 @@ export const getPatientProfile = async (req, res) => {
 //  PHASE 3: SEARCH & FILTER DOCTORS
 // ═══════════════════════════════════════════════════════════════════
 
+// ── Get Doctor Details ──────────────────────────────────────────
+// Route: GET /api/patient/doctors/:id
+// Access: Protected
+export const getDoctorDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { date } = req.query; // optional date to check booking count
+
+    const doctor = await Doctor.findById(id).populate({
+      path: "brokerId",
+      select: "name clinic_name clinic_address clinic_location phone",
+    });
+
+    if (!doctor || !doctor.is_verified) {
+      return res.status(404).json({
+        success: false,
+        message: "Doctor not found or not verified.",
+      });
+    }
+
+    let bookingCount = 0;
+    if (date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      bookingCount = await Booking.countDocuments({
+        doctorId: id,
+        date: { $gte: startOfDay, $lte: endOfDay },
+        status: { $nin: ["Cancelled"] },
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      doctor,
+      bookingCount,
+    });
+  } catch (error) {
+    console.error("Get Doctor Details Error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching doctor details.",
+    });
+  }
+};
+
 // ── Search Verified Doctors ─────────────────────────────────────
 // Route: GET /api/patient/doctors
 // Access: Protected (logged-in patient)
@@ -306,31 +354,25 @@ export const createBooking = async (req, res) => {
       });
     }
 
-    // ── Step 2: Auto-extract brokerId from the doctor ───────────
-    // The doctor document already contains brokerId (set when broker added the doctor)
-    const brokerId = doctor.brokerId;
+    // ── Step 1b: Validate against Doctor's Schedule ─────────────
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const bookingDayName = days[new Date(date).getDay()];
+    
+    const scheduleForDay = doctor.schedule.find(s => s.day === bookingDayName);
+    if (!scheduleForDay) {
+      return res.status(400).json({
+        success: false,
+        message: `Doctor is not available on ${bookingDayName}.`,
+      });
+    }
 
-    // ── Step 2b: Prevent duplicate booking ──────────────────────
-    // Same patient, same doctor, same date, same time slot
+    const brokerId = doctor.brokerId;
+    
+    // Define date boundaries for counting existing bookings
     const startOfDay = new Date(bookingDate);
     startOfDay.setHours(0, 0, 0, 0);
     const endOfDay = new Date(bookingDate);
     endOfDay.setHours(23, 59, 59, 999);
-
-    const existingBooking = await Booking.findOne({
-      patientId,
-      doctorId,
-      date: { $gte: startOfDay, $lte: endOfDay },
-      time_slot,
-      status: { $nin: ["Cancelled"] }, // allow re-booking if previous was cancelled
-    });
-
-    if (existingBooking) {
-      return res.status(409).json({
-        success: false,
-        message: "You already have a booking with this doctor at this time slot.",
-      });
-    }
 
     // ── Step 3: Queue Token Generation (Offline bookings only) ──
     //
@@ -352,7 +394,30 @@ export const createBooking = async (req, res) => {
         status: { $nin: ["Cancelled"] }, // don't count cancelled bookings
       });
 
+      // Check against schedule's max_patients
+      if (existingCount >= scheduleForDay.max_patients) {
+        return res.status(400).json({
+          success: false,
+          message: "Doctor has reached the maximum patient limit for this day.",
+        });
+      }
+
       queue_token_number = existingCount + 1;
+    } else {
+      // Also check for Online bookings if they share the limit or have their own
+      const existingOnlineCount = await Booking.countDocuments({
+        doctorId,
+        date: { $gte: startOfDay, $lte: endOfDay },
+        booking_mode: "Online",
+        status: { $nin: ["Cancelled"] },
+      });
+
+      if (existingOnlineCount >= scheduleForDay.max_patients) {
+         return res.status(400).json({
+          success: false,
+          message: "Doctor has reached the maximum limit for online consultations today.",
+        });
+      }
     }
 
     // ── Step 4: Create the booking (status defaults to 'Pending') ─
@@ -364,7 +429,7 @@ export const createBooking = async (req, res) => {
       date: startOfDay, // normalize to start of day for consistent date queries
       time_slot,
       queue_token_number,
-      // status defaults to "Pending" in the schema
+      status: "Accepted", // Instant approval upon "payment"
     });
 
     res.status(201).json({

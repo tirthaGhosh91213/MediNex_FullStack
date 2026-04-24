@@ -42,9 +42,11 @@ export const getBrokerBookings = async (req, res) => {
     // Build filter — always scoped to this broker
     const filter = { brokerId };
 
-    // Date filter (defaults to today if not provided)
-    const { start, end } = getDayRange(date);
-    filter.date = { $gte: start, $lte: end };
+    // Date filter: Only apply if explicitly provided
+    if (date) {
+      const { start, end } = getDayRange(date);
+      filter.date = { $gte: start, $lte: end };
+    }
 
     // Optional status filter
     if (status) {
@@ -72,7 +74,7 @@ export const getBrokerBookings = async (req, res) => {
     res.status(200).json({
       success: true,
       count: bookings.length,
-      date: start.toISOString().split("T")[0],
+      date: date || "all",
       bookings,
     });
   } catch (error) {

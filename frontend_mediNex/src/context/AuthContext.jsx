@@ -28,9 +28,10 @@ export const AuthProvider = ({ children }) => {
           const res = await axios.get(endpoint);
           
           let userData = null;
-          if (role === "admin") userData = res.data.admin;
-          else if (role === "broker") userData = res.data.broker;
-          else if (role === "patient") userData = res.data.patient;
+          const lowerRole = role.toLowerCase();
+          if (lowerRole === "admin") userData = res.data.admin;
+          else if (lowerRole === "broker") userData = res.data.broker;
+          else if (lowerRole === "patient") userData = res.data.patient;
           
           setUser(userData);
         } catch (error) {

@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import Admin from "../models/adminModel.js";
 import Broker from "../models/brokerModel.js";
 import Doctor from "../models/doctorModel.js";
+import Notification from "../models/notificationModel.js";
 
 /**
  * Admin Auth Controller
@@ -292,6 +293,32 @@ export const verifyDoctor = async (req, res) => {
     doctor.is_verified = true;
     await doctor.save();
 
+    // 4. Populate brokerId to get broker info for notification
+    await doctor.populate("brokerId");
+
+    // 5. Create notification in database for the broker
+    const notificationMessage = `🎉 Dr. ${doctor.name} has been verified and is now live on the platform!`;
+    const notification = await Notification.create({
+      type: "DOCTOR_APPROVED",
+      message: notificationMessage,
+      recipientId: doctor.brokerId._id,
+      relatedId: doctor._id,
+      onModel: "Doctor"
+    });
+
+    // 6. Notify the broker via socket (real-time)
+    const io = req.app.get("io");
+    if (io && doctor.brokerId) {
+      io.to(`broker_${doctor.brokerId._id}`).emit("doctorApproved", {
+        _id: notification._id,
+        type: "DOCTOR_APPROVED",
+        message: notificationMessage,
+        doctorId: doctor._id,
+        doctorName: doctor.name,
+        createdAt: notification.createdAt
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: `Doctor "${doctor.name}" (${doctor.specialization}) has been verified successfully.`,
@@ -307,6 +334,52 @@ export const verifyDoctor = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while verifying doctor.",
+    });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  NOTIFICATIONS
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Get Notifications ───────────────────────────────────────────
+// Route: GET /api/admin/notifications
+// Access: Admin only
+export const getNotifications = async (req, res) => {
+  try {
+    const notifications = await Notification.find()
+      .sort({ createdAt: -1 })
+      .limit(50); // Get latest 50 notifications
+
+    res.status(200).json({
+      success: true,
+      notifications,
+    });
+  } catch (error) {
+    console.error("Get Notifications Error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching notifications.",
+    });
+  }
+};
+
+// ── Clear All Notifications ─────────────────────────────────────
+// Route: DELETE /api/admin/notifications/clear
+// Access: Admin only
+export const clearNotifications = async (req, res) => {
+  try {
+    await Notification.deleteMany({});
+    
+    res.status(200).json({
+      success: true,
+      message: "All notifications cleared.",
+    });
+  } catch (error) {
+    console.error("Clear Notifications Error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error while clearing notifications.",
     });
   }
 };

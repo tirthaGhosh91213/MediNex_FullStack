@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Broker from "../models/brokerModel.js";
 import Doctor from "../models/doctorModel.js";
+import Notification from "../models/notificationModel.js";
 
 /**
  * Broker Auth Controller
@@ -24,15 +25,25 @@ export const registerBroker = async (req, res) => {
       phone,
       clinic_name,
       trade_license_number,
-      clinic_location, // expected: { coordinates: [lng, lat] }
+      clinic_location,
       clinic_address,
     } = req.body;
+
+    const aadharFile = req.files?.['aadhar']?.[0];
+    const licenseFile = req.files?.['license']?.[0];
 
     // 1. Validate required fields
     if (!name || !email || !password || !phone || !clinic_name || !trade_license_number) {
       return res.status(400).json({
         success: false,
         message: "All required fields must be provided: name, email, password, phone, clinic_name, trade_license_number.",
+      });
+    }
+
+    if (!aadharFile || !licenseFile) {
+      return res.status(400).json({
+        success: false,
+        message: "Aadhar card and Clinic License documents are required.",
       });
     }
 
@@ -55,11 +66,19 @@ export const registerBroker = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     // 4. Build location object (GeoJSON Point)
+    // clinic_location comes as a JSON string from FormData
+    let parsedLocation = null;
+    try {
+      parsedLocation = clinic_location ? JSON.parse(clinic_location) : null;
+    } catch (e) {
+      parsedLocation = null;
+    }
+
     const locationData = {
       type: "Point",
       coordinates:
-        clinic_location && Array.isArray(clinic_location.coordinates)
-          ? clinic_location.coordinates
+        parsedLocation && Array.isArray(parsedLocation.coordinates)
+          ? parsedLocation.coordinates
           : [0, 0],
     };
 
@@ -73,6 +92,8 @@ export const registerBroker = async (req, res) => {
       trade_license_number,
       clinic_location: locationData,
       clinic_address: clinic_address || "",
+      owner_aadhar: aadharFile ? `http://localhost:4000/uploads/${aadharFile.filename}` : "",
+      clinic_license: licenseFile ? `http://localhost:4000/uploads/${licenseFile.filename}` : "",
     });
 
     // 6. Generate JWT
@@ -82,7 +103,20 @@ export const registerBroker = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // 7. Respond
+    // 7. Save Notification to DB & Emit socket event for Admin
+    const notification = await Notification.create({
+      type: "NEW_CLINIC",
+      message: `New clinic registration request from ${clinic_name}.`,
+      relatedId: broker._id,
+      onModel: 'Broker'
+    });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("newAdminNotification", notification);
+    }
+
+    // 8. Respond
     res.status(201).json({
       success: true,
       message: "Broker registered successfully. Awaiting admin approval.",
@@ -229,8 +263,22 @@ export const addDoctor = async (req, res) => {
       experience,
       fees,
       bio,
-      available_slots,
+      schedule,       // JSON string: [{day, from, to, max_patients}]
+      max_patients_per_day,
     } = req.body;
+
+    // Handle multiple files: avatar & registration_certificate
+    const avatarFile = req.files?.['avatar']?.[0];
+    const regCertFile = req.files?.['registration_certificate']?.[0];
+
+    const buildFileUrl = (file) =>
+      file ? `http://localhost:4000/uploads/${file.filename}` : "";
+
+    // Parse schedule JSON string from FormData
+    let parsedSchedule = [];
+    try {
+      parsedSchedule = schedule ? JSON.parse(schedule) : [];
+    } catch { parsedSchedule = []; }
 
     // 3. Validate required fields
     if (!name || !email || !specialization || !medical_reg_number || fees === undefined) {
@@ -268,9 +316,24 @@ export const addDoctor = async (req, res) => {
       experience: experience || 0,
       fees,
       bio: bio || "",
-      available_slots: available_slots || [],
-      // is_verified defaults to false in the schema
+      avatar: buildFileUrl(avatarFile),
+      registration_certificate: buildFileUrl(regCertFile),
+      schedule: parsedSchedule,
+      max_patients_per_day: max_patients_per_day || 20,
     });
+
+    // 6. Save Notification to DB & Emit socket event for Admin
+    const notification = await Notification.create({
+      type: "NEW_DOCTOR",
+      message: `New doctor ${doctor.name} added by ${broker.clinic_name}. Awaiting verification.`,
+      relatedId: doctor._id,
+      onModel: 'Doctor'
+    });
+
+    const io = req.app.get("io");
+    if (io) {
+      io.emit("newAdminNotification", notification);
+    }
 
     res.status(201).json({
       success: true,
@@ -442,6 +505,49 @@ export const getPatientRecords = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Server error while fetching patient records.",
+    });
+  }
+};
+// ── Get Broker Notifications ──────────────────────────────────────
+// Route: GET /api/broker/notifications
+// Access: Broker only
+export const getBrokerNotifications = async (req, res) => {
+  try {
+    const brokerId = req.user.id;
+    const notifications = await Notification.find({ recipientId: brokerId })
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.status(200).json({
+      success: true,
+      notifications,
+    });
+  } catch (error) {
+    console.error("Get Broker Notifications Error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching notifications.",
+    });
+  }
+};
+
+// ── Clear Broker Notifications ───────────────────────────────────
+// Route: DELETE /api/broker/notifications/clear
+// Access: Broker only
+export const clearBrokerNotifications = async (req, res) => {
+  try {
+    const brokerId = req.user.id;
+    await Notification.deleteMany({ recipientId: brokerId });
+
+    res.status(200).json({
+      success: true,
+      message: "All notifications cleared.",
+    });
+  } catch (error) {
+    console.error("Clear Broker Notifications Error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error while clearing notifications.",
     });
   }
 };

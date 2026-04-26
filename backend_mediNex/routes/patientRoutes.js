@@ -46,10 +46,14 @@ patientRouter.get("/my-bookings", verifyToken, getMyBookings);
 
 // ── Phase 8: Patient Health Vault & Reviews ───────────────────────
 import { upload } from "../config/cloudinary.js";
-import { uploadHealthRecord, getHealthVault, submitReview } from "../controllers/patientController.js";
+import { uploadHealthRecord, getHealthVault, submitReview, getMyMessages, clearMessage } from "../controllers/patientController.js";
 
 patientRouter.post("/vault/upload", verifyToken, upload.single("health_record"), uploadHealthRecord);
 patientRouter.get("/vault", verifyToken, getHealthVault);
 patientRouter.post("/review/:bookingId", verifyToken, submitReview);
+
+// ── Phase 9: Patient Messages ─────────────────────────────────────
+patientRouter.get("/messages", verifyToken, getMyMessages);
+patientRouter.delete("/messages/:id", verifyToken, clearMessage);
 
 export default patientRouter;

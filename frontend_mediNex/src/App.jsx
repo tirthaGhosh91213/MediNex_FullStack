@@ -15,6 +15,7 @@ import PatientLayout from "./pages/Patient/PatientLayout";
 import PatientDashboard from "./pages/Patient/PatientDashboard";
 import MyBookings from "./pages/Patient/MyBookings";
 import HealthVault from "./pages/Patient/HealthVault";
+import DoctorDetails from "./pages/Patient/DoctorDetails";
 
 // Broker Imports
 import BrokerLayout from "./pages/Broker/BrokerLayout";
@@ -22,6 +23,7 @@ import BrokerOverview from "./pages/Broker/Dashboard/BrokerOverview";
 import ManageDoctors from "./pages/Broker/Doctors/ManageDoctors";
 import BookingRequests from "./pages/Broker/Bookings/BookingRequests";
 import LiveQueue from "./pages/Broker/Queue/LiveQueue";
+import ClinicPerformance from "./pages/Broker/Dashboard/ClinicPerformance";
 
 // Admin Imports
 import AdminLayout from "./pages/Admin/AdminLayout";
@@ -58,6 +60,7 @@ function App() {
             <Route path="dashboard" element={<PatientDashboard />} />
             <Route path="my-bookings" element={<MyBookings />} />
             <Route path="vault" element={<HealthVault />} />
+            <Route path="doctor/:id" element={<DoctorDetails />} />
           </Route>
         </Route>
 
@@ -68,6 +71,7 @@ function App() {
             <Route path="doctors" element={<ManageDoctors />} />
             <Route path="appointments" element={<BookingRequests />} />
             <Route path="queue" element={<LiveQueue />} />
+            <Route path="performance" element={<ClinicPerformance />} />
           </Route>
         </Route>
 

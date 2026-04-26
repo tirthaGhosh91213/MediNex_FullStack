@@ -10,6 +10,8 @@ import adminRouter from "./routes/adminRoutes.js";
 import brokerRouter from "./routes/brokerRoutes.js";
 import patientRouter from "./routes/patientRoutes.js";
 import queueRouter from "./routes/queueRoutes.js";
+import cron from "node-cron";
+import PatientMessage from "./models/patientMessageModel.js";
 
 // ── Initialize Express App ──────────────────────────────────────
 const app = express();
@@ -109,6 +111,17 @@ app.use((err, req, res, next) => {
     success: false,
     message: "Internal server error.",
   });
+});
+
+// ── Cron Jobs ───────────────────────────────────────────────────
+// Run every day at midnight to clear patient broadcast messages
+cron.schedule("0 0 * * *", async () => {
+  try {
+    await PatientMessage.deleteMany({});
+    console.log("🧹 Cron Job: Cleared all patient broadcast messages for the new day.");
+  } catch (error) {
+    console.error("❌ Cron Job Error:", error);
+  }
 });
 
 // ── Start Server (httpServer, not app.listen) ───────────────────

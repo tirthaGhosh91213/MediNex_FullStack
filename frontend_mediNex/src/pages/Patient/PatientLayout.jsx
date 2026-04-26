@@ -1,17 +1,83 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { 
   LayoutDashboard, CalendarDays, Archive, 
   LogOut, User, Menu, X, Bell, 
-  Search, ShieldCheck, HeartPulse 
+  ShieldCheck, HeartPulse
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { io } from "socket.io-client";
+import axios from "axios";
 
 const PatientLayout = () => {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isInboxOpen, setIsInboxOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+
+  const backendUrl = "http://localhost:4000";
+
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const { data } = await axios.get(`${backendUrl}/api/patient/messages`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (data.success) {
+          setMessages(data.messages);
+        }
+      } catch (error) {
+        console.error("Failed to fetch messages:", error);
+      }
+    };
+    if (token) fetchMessages();
+
+    // Socket connection for real-time broadcast updates
+    const socket = io(backendUrl);
+    if (user?.id) {
+      socket.emit("joinPatientRoom", user.id);
+    }
+
+    socket.on("new_broadcast_message", () => {
+      // Re-fetch to get populated fields
+      fetchMessages();
+      // Play 5-second alert sound
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.5, ctx.currentTime + 0.1);
+        // Pulsing beep pattern for urgency
+        for (let i = 0; i < 10; i++) {
+          gain.gain.setValueAtTime(0.5, ctx.currentTime + i * 0.5);
+          gain.gain.linearRampToValueAtTime(0, ctx.currentTime + i * 0.5 + 0.25);
+        }
+        osc.start();
+        osc.stop(ctx.currentTime + 5);
+      } catch (e) { console.error("Audio error:", e); }
+    });
+
+    return () => socket.disconnect();
+  }, [token, user?.id]);
+
+  const clearMessage = async (id) => {
+    try {
+      await axios.delete(`${backendUrl}/api/patient/messages/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMessages(prev => prev.filter(m => m._id !== id));
+    } catch (error) {
+      console.error("Failed to clear message:", error);
+    }
+  };
 
   const navLinks = [
     { name: "Dashboard", path: "/patient/dashboard", icon: <LayoutDashboard size={20} /> },
@@ -144,10 +210,75 @@ const PatientLayout = () => {
 
           <div className="flex items-center gap-4">
             {/* Notification Bell */}
-            <button className="relative w-12 h-12 flex items-center justify-center bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-blue-600 hover:shadow-lg transition-all group">
-               <Bell size={20} className="group-hover:rotate-12 transition-transform" />
-               <span className="absolute top-3.5 right-3.5 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white"></span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setIsInboxOpen(!isInboxOpen)}
+                className="relative w-12 h-12 flex items-center justify-center bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-blue-600 hover:shadow-lg transition-all group"
+              >
+                 <Bell size={20} className="group-hover:rotate-12 transition-transform" />
+                 {messages.length > 0 && (
+                   <span className="absolute top-3.5 right-3.5 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white"></span>
+                 )}
+              </button>
+
+              <AnimatePresence>
+                {isInboxOpen && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setIsInboxOpen(false)}
+                    ></div>
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      className="absolute top-16 right-0 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden z-50 origin-top-right"
+                    >
+                      <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-5 text-white flex justify-between items-center">
+                        <h3 className="font-bold flex items-center gap-2">
+                          <Bell size={18} /> Notifications
+                        </h3>
+                        <span className="text-xs bg-white/20 px-3 py-1 rounded-full font-semibold">{messages.length} New</span>
+                      </div>
+                      <div className="max-h-[350px] overflow-y-auto custom-scrollbar p-3 bg-slate-50/50">
+                        {messages.length === 0 ? (
+                          <div className="text-center py-10 text-slate-400">
+                            <Bell size={32} className="mx-auto mb-3 opacity-30" />
+                            <p className="text-sm font-medium">No new messages from clinics.</p>
+                          </div>
+                        ) : (
+                          messages.map(msg => (
+                            <motion.div 
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              key={msg._id} 
+                              className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-3 relative group hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex gap-3 mb-3 pr-6">
+                                <img src={msg.doctorId?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.doctorId?.name || 'Doctor')}`} className="w-10 h-10 rounded-full object-cover shrink-0" />
+                                <div>
+                                  <h4 className="text-sm font-bold text-slate-800 leading-tight">{msg.doctorId?.name}</h4>
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{msg.brokerId?.clinic_name}</p>
+                                </div>
+                              </div>
+                              <p className="text-sm text-slate-700 leading-relaxed bg-blue-50/50 p-3 rounded-xl border border-blue-100/50 font-medium">
+                                {msg.message}
+                              </p>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); clearMessage(msg._id); }}
+                                className="absolute top-3 right-3 text-slate-300 hover:text-red-500 bg-white hover:bg-red-50 p-1.5 rounded-full transition-colors"
+                              >
+                                <X size={14} className="pointer-events-none" />
+                              </button>
+                            </motion.div>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           
             {/* User Profile Pill */}
             <div className="flex items-center gap-4 bg-white p-1.5 pr-6 rounded-[1.25rem] border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer group">

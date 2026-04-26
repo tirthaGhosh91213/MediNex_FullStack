@@ -124,7 +124,10 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm"
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(e); }}
+      >
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -140,8 +143,12 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
             <>
               {/* Header Profile Section */}
               <div className="relative border-b border-gray-100 bg-gray-50 px-8 py-6 flex items-center gap-6">
-                <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 p-2 rounded-md hover:bg-gray-200 transition-colors z-50 cursor-pointer">
-                  <X size={20} />
+                <button 
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(e); }} 
+                  className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 p-2 rounded-md hover:bg-gray-200 transition-colors z-[1000] cursor-pointer"
+                >
+                  <X size={20} className="pointer-events-none" />
                 </button>
                 <div className="relative shrink-0">
                   <img 

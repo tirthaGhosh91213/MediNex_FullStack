@@ -81,4 +81,11 @@ brokerRouter.get("/patient-records/:patientId", verifyToken, isBroker, getPatien
 brokerRouter.get("/notifications", verifyToken, isBroker, getBrokerNotifications);
 brokerRouter.delete("/notifications/clear", verifyToken, isBroker, clearBrokerNotifications);
 
+// ── Broadcast Messaging ─────────────────────────────────────────
+import { getTodayDoctors, getTodayPatientsByDoctor, broadcastMessage, getBrokerAnalytics } from "../controllers/brokerController.js";
+brokerRouter.get("/today-doctors", verifyToken, isBroker, getTodayDoctors);
+brokerRouter.get("/today-patients/:doctorId", verifyToken, isBroker, getTodayPatientsByDoctor);
+brokerRouter.post("/broadcast", verifyToken, isBroker, broadcastMessage);
+brokerRouter.get("/analytics", verifyToken, isBroker, getBrokerAnalytics);
+
 export default brokerRouter;

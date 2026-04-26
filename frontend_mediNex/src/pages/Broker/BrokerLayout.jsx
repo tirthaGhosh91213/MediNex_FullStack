@@ -7,7 +7,7 @@ import { io } from "socket.io-client";
 import { motion } from "framer-motion";
 import { 
   Building2, LayoutDashboard, Users, CalendarCheck, 
-  ActivitySquare, LogOut, Bell, AlertTriangle, Trash2, X
+  ActivitySquare, LogOut, Bell, AlertTriangle, Trash2, X, TrendingUp
 } from "lucide-react";
 import axios from "axios";
 import { AnimatePresence } from "framer-motion";
@@ -22,7 +22,7 @@ const BrokerLayout = () => {
     { path: "/broker/dashboard", name: "Overview", icon: <LayoutDashboard size={20} /> },
     { path: "/broker/doctors", name: "Manage Doctors", icon: <Users size={20} /> },
     { path: "/broker/appointments", name: "Appointments", icon: <CalendarCheck size={20} /> },
-    { path: "/broker/queue", name: "Live Queue", icon: <ActivitySquare size={20} /> },
+    { path: "/broker/performance", name: "Clinic Performance", icon: <TrendingUp size={20} /> },
   ];
 
   const [notifications, setNotifications] = React.useState([]);

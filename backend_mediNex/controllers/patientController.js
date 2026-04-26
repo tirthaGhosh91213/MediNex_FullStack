@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import Patient from "../models/patientModel.js";
 import Doctor from "../models/doctorModel.js";
 import Booking from "../models/bookingModel.js";
+import PatientMessage from "../models/patientMessageModel.js";
 
 /**
  * Patient Auth Controller
@@ -595,5 +596,42 @@ export const submitReview = async (req, res) => {
   } catch (error) {
     console.error("Submit Review Error:", error.message);
     res.status(500).json({ success: false, message: "Server error while submitting review." });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  PHASE 9: PATIENT MESSAGES
+// ═══════════════════════════════════════════════════════════════════
+
+export const getMyMessages = async (req, res) => {
+  try {
+    const patientId = req.user.id;
+    const messages = await PatientMessage.find({ patientId })
+      .populate("doctorId", "name specialization avatar")
+      .populate("brokerId", "clinic_name")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, count: messages.length, messages });
+  } catch (error) {
+    console.error("Get My Messages Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const clearMessage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const patientId = req.user.id;
+
+    const message = await PatientMessage.findOneAndDelete({ _id: id, patientId });
+
+    if (!message) {
+      return res.status(404).json({ success: false, message: "Message not found." });
+    }
+
+    res.status(200).json({ success: true, message: "Message cleared." });
+  } catch (error) {
+    console.error("Clear Message Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

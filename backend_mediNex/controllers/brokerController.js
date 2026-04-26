@@ -3,6 +3,9 @@ import jwt from "jsonwebtoken";
 import Broker from "../models/brokerModel.js";
 import Doctor from "../models/doctorModel.js";
 import Notification from "../models/notificationModel.js";
+import Booking from "../models/bookingModel.js";
+import PatientMessage from "../models/patientMessageModel.js";
+import Patient from "../models/patientModel.js";
 
 /**
  * Broker Auth Controller
@@ -549,5 +552,193 @@ export const clearBrokerNotifications = async (req, res) => {
       success: false,
       message: "Server error while clearing notifications.",
     });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
+//  PHASE 9: BROADCAST MESSAGING
+// ═══════════════════════════════════════════════════════════════════
+
+export const getTodayDoctors = async (req, res) => {
+  try {
+    const brokerId = req.user.id;
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const bookings = await Booking.find({
+      brokerId,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ["Pending", "Accepted", "In-Progress", "Completed"] }
+    }).populate("doctorId", "name specialization avatar");
+
+    const doctorsMap = {};
+    bookings.forEach((booking) => {
+      const doc = booking.doctorId;
+      if (!doc) return;
+      if (!doctorsMap[doc._id]) {
+        doctorsMap[doc._id] = {
+          doctor: doc,
+          totalCount: 0,
+          completedCount: 0
+        };
+      }
+      doctorsMap[doc._id].totalCount += 1;
+      if (booking.status === "Completed") {
+        doctorsMap[doc._id].completedCount += 1;
+      }
+    });
+
+    const result = Object.values(doctorsMap).map(item => ({
+      doctor: item.doctor,
+      totalPatientCount: item.totalCount,
+      completedPatientCount: item.completedCount
+    }));
+
+    res.status(200).json({ success: true, activeDoctors: result });
+  } catch (error) {
+    console.error("Get Today Doctors Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getTodayPatientsByDoctor = async (req, res) => {
+  try {
+    const brokerId = req.user.id;
+    const { doctorId } = req.params;
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const bookings = await Booking.find({
+      brokerId,
+      doctorId,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ["Pending", "Accepted", "In-Progress", "Completed"] }
+    })
+      .populate("patientId", "name phone avatar")
+      .sort({ queue_token_number: 1, createdAt: 1 });
+
+    res.status(200).json({ success: true, count: bookings.length, bookings });
+  } catch (error) {
+    console.error("Get Today Patients Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const broadcastMessage = async (req, res) => {
+  try {
+    const brokerId = req.user.id;
+    const { doctorId, message } = req.body;
+
+    if (!doctorId || !message) {
+      return res.status(400).json({ success: false, message: "Doctor ID and message are required." });
+    }
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const bookings = await Booking.find({
+      brokerId,
+      doctorId,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ["Pending", "Accepted", "In-Progress", "Completed"] }
+    });
+
+    const uniquePatientIds = [...new Set(bookings.map(b => b.patientId.toString()))];
+
+    if (uniquePatientIds.length === 0) {
+      return res.status(400).json({ success: false, message: "No patients found for this doctor today." });
+    }
+
+    const io = req.app.get("io");
+
+    const messagesToCreate = uniquePatientIds.map(patientId => ({
+      patientId,
+      doctorId,
+      brokerId,
+      message
+    }));
+
+    const savedMessages = await PatientMessage.insertMany(messagesToCreate);
+
+    if (io) {
+      savedMessages.forEach(msg => {
+        io.to(`patient_${msg.patientId}`).emit("new_broadcast_message", msg);
+      });
+    }
+
+    res.status(200).json({ success: true, message: `Message broadcasted to ${uniquePatientIds.length} patients.` });
+  } catch (error) {
+    console.error("Broadcast Message Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getBrokerAnalytics = async (req, res) => {
+  try {
+    const brokerId = req.user.id;
+    const { timeframe } = req.query;
+
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    if (timeframe === "week") {
+      const day = start.getDay();
+      const diff = start.getDate() - day + (day === 0 ? -6 : 1);
+      start.setDate(diff);
+    } else if (timeframe === "month") {
+      start.setDate(1);
+    }
+
+    const bookings = await Booking.find({
+      brokerId,
+      status: "Completed",
+      date: { $gte: start, $lte: end }
+    }).populate("doctorId", "name avatar specialization fees");
+
+    let totalRevenue = 0;
+    const totalPatients = bookings.length;
+    
+    const docMap = {};
+
+    bookings.forEach(b => {
+      const doc = b.doctorId;
+      if (!doc) return;
+      
+      const fee = doc.fees || 0;
+      totalRevenue += fee;
+
+      if (!docMap[doc._id]) {
+        docMap[doc._id] = {
+          doctor: doc,
+          patientsSeen: 0,
+          revenue: 0
+        };
+      }
+      docMap[doc._id].patientsSeen += 1;
+      docMap[doc._id].revenue += fee;
+    });
+
+    const doctorStats = Object.values(docMap).sort((a, b) => b.revenue - a.revenue);
+
+    res.status(200).json({
+      success: true,
+      timeframe: timeframe || "today",
+      totalRevenue,
+      totalPatients,
+      doctorStats
+    });
+
+  } catch (error) {
+    console.error("Analytics Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

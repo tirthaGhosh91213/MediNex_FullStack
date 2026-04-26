@@ -205,7 +205,7 @@ export const updateBookingStatus = async (req, res) => {
 
     // 3. Enforce valid status transitions
     const validTransitions = {
-      "Accepted": ["In-Progress"],
+      "Accepted": ["In-Progress", "Completed"],
       "In-Progress": ["Completed"],
     };
 

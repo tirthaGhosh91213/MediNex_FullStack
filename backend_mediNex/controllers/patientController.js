@@ -367,6 +367,28 @@ export const createBooking = async (req, res) => {
       });
     }
 
+    // ── Step 1c: Prevent booking if today's slot time has passed ──
+    const now = new Date();
+    // Compare date safely for local timezone
+    if (
+      bookingDate.getDate() === now.getDate() &&
+      bookingDate.getMonth() === now.getMonth() &&
+      bookingDate.getFullYear() === now.getFullYear()
+    ) {
+      if (scheduleForDay.to) {
+        const [endHour, endMin] = scheduleForDay.to.split(":").map(Number);
+        const currentHour = now.getHours();
+        const currentMin = now.getMinutes();
+
+        if (currentHour > endHour || (currentHour === endHour && currentMin >= endMin)) {
+          return res.status(400).json({
+            success: false,
+            message: `Booking closed for today. Doctor's slot ended at ${scheduleForDay.to}.`,
+          });
+        }
+      }
+    }
+
     const brokerId = doctor.brokerId;
     
     // Define date boundaries for counting existing bookings

@@ -39,6 +39,28 @@ export const getLiveQueue = async (req, res) => {
       .populate({ path: "doctorId", select: "name specialization" })
       .populate({ path: "patientId", select: "name" });
 
+    // 1b. If no one is In-Progress, find the last Completed one
+    const lastCompleted = !currentlyServing
+      ? await Booking.findOne({
+          ...dateFilter,
+          status: "Completed",
+        }).sort({ updatedAt: -1 })
+      : null;
+
+    // Determine the Now Serving token
+    let nowServingData = null;
+    if (currentlyServing) {
+      nowServingData = {
+        token: currentlyServing.queue_token_number,
+        status: "In-Progress",
+      };
+    } else if (lastCompleted) {
+      nowServingData = {
+        token: lastCompleted.queue_token_number,
+        status: "Completed",
+      };
+    }
+
     // 2. Get queue summary stats for today
     const [totalToday, pending, accepted, completed] = await Promise.all([
       Booking.countDocuments({ ...dateFilter, booking_mode: "Offline", status: { $nin: ["Cancelled"] } }),
@@ -59,14 +81,7 @@ export const getLiveQueue = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      nowServing: currentlyServing
-        ? {
-            token: currentlyServing.queue_token_number,
-            patientName: currentlyServing.patientId?.name || "Patient",
-            doctorName: currentlyServing.doctorId?.name || "Doctor",
-            bookingId: currentlyServing._id,
-          }
-        : null,
+      nowServing: nowServingData,
       stats: {
         totalToday,
         pending,

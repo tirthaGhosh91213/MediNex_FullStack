@@ -73,6 +73,28 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
 
   const scheduleForDay = getDaySchedule();
 
+  const isTimePassed = () => {
+    if (!date || !scheduleForDay || !scheduleForDay.to) return false;
+    
+    // Check if the selected date is today (local time)
+    const selectedDate = new Date(date);
+    const now = new Date();
+    const isToday = selectedDate.getDate() === now.getDate() && 
+                    selectedDate.getMonth() === now.getMonth() && 
+                    selectedDate.getFullYear() === now.getFullYear();
+    
+    if (!isToday) return false;
+
+    // Compare with schedule end time
+    const [endHour, endMin] = scheduleForDay.to.split(":").map(Number);
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+
+    return currentHour > endHour || (currentHour === endHour && currentMin >= endMin);
+  };
+
+  const timeHasPassed = isTimePassed();
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!token) {
@@ -269,8 +291,14 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
 
                       {/* Token Preview / Fully Booked Alert */}
                       {date && (
-                        <div className={`rounded-lg p-5 border ${isFullyBooked ? 'bg-red-50 border-red-200 text-center' : 'bg-blue-50 border-blue-100 flex items-center justify-between'}`}>
-                          {isFullyBooked ? (
+                        <div className={`rounded-lg p-5 border ${(isFullyBooked || timeHasPassed) ? 'bg-red-50 border-red-200 text-center' : 'bg-blue-50 border-blue-100 flex items-center justify-between'}`}>
+                          {timeHasPassed ? (
+                            <>
+                              <p className="text-red-500 text-xs font-semibold uppercase tracking-wide mb-1">Status</p>
+                              <h4 className="text-lg font-bold text-red-700">Booking Closed for Today</h4>
+                              <p className="text-red-500 text-sm mt-1">Doctor's slot ended at {scheduleForDay.to}</p>
+                            </>
+                          ) : isFullyBooked ? (
                             <>
                               <p className="text-red-500 text-xs font-semibold uppercase tracking-wide mb-1">Status</p>
                               <h4 className="text-lg font-bold text-red-700">Fully Booked for Today</h4>
@@ -298,7 +326,7 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
                         </div>
                         <button 
                           type="button"
-                          disabled={!date || !timeSlot || isFullyBooked}
+                          disabled={!date || !timeSlot || isFullyBooked || timeHasPassed}
                           onClick={() => setStep(2)}
                           className="flex-1 md:w-48 py-3 font-medium text-white bg-gray-900 hover:bg-black disabled:bg-gray-300 disabled:text-gray-500 rounded-md transition-colors flex items-center justify-center text-sm"
                         >

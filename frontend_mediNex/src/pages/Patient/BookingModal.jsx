@@ -184,18 +184,26 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
     fetchRoute();
   }, [currentPos.lat, currentPos.lng, clinicLat, clinicLng]);
 
-  // Helper to get available slots from doctor's schedule
-  const getDaySchedule = () => {
-    if (!date) return null;
+  // Reset time slot when date or mode changes
+  useEffect(() => {
+    setTimeSlot("");
+  }, [date, bookingMode]);
+
+  // Helper to get all available slots from doctor's schedule for selected day and mode
+  const getDaySchedules = () => {
+    if (!date) return [];
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const selectedDayName = days[new Date(date).getDay()];
-    return doctor.schedule?.find(s => s.day === selectedDayName);
+    // Find all schedules for the selected day that match the selected booking mode
+    return doctor.schedule?.filter(s => s.day === selectedDayName && s.mode === bookingMode) || [];
   };
 
-  const scheduleForDay = getDaySchedule();
+  const daySchedules = getDaySchedules();
+  // For legacy compatibility where we used 'scheduleForDay'
+  const scheduleForDay = daySchedules.length > 0 ? daySchedules[0] : null;
 
   const isTimePassed = () => {
-    if (!date || !scheduleForDay || !scheduleForDay.to) return false;
+    if (!date || daySchedules.length === 0) return false;
     
     // Check if the selected date is today (local time)
     const selectedDate = new Date(date);
@@ -206,8 +214,16 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
     
     if (!isToday) return false;
 
-    // Compare with schedule end time
-    const [endHour, endMin] = scheduleForDay.to.split(":").map(Number);
+    // Check against the latest slot's end time
+    const latestSlot = [...daySchedules].sort((a, b) => {
+      const timeA = a.to.split(':').map(Number);
+      const timeB = b.to.split(':').map(Number);
+      return (timeB[0] * 60 + timeB[1]) - (timeA[0] * 60 + timeA[1]);
+    })[0];
+
+    if (!latestSlot || !latestSlot.to) return false;
+
+    const [endHour, endMin] = latestSlot.to.split(":").map(Number);
     const currentHour = now.getHours();
     const currentMin = now.getMinutes();
 
@@ -263,7 +279,7 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
   };
 
   const isFullyBooked = scheduleForDay && nextToken > scheduleForDay.max_patients;
-  const availableDays = doctor.schedule?.map(s => s.day).join(", ") || "No schedule set";
+  const availableDays = doctor.schedule?.filter(s => s.mode === bookingMode).map(s => s.day).filter((v, i, a) => a.indexOf(v) === i).join(", ") || "No schedule set for this mode";
 
   return (
     <AnimatePresence>
@@ -466,12 +482,14 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
                             required
                           >
                             <option value="" disabled>Select Time...</option>
-                            {scheduleForDay ? (
-                              <option value={`${scheduleForDay.from} - ${scheduleForDay.to}`}>
-                                {scheduleForDay.from} to {scheduleForDay.to}
-                              </option>
+                            {daySchedules.length > 0 ? (
+                              daySchedules.map((s, idx) => (
+                                <option key={idx} value={`${s.from} - ${s.to}`}>
+                                  {s.from} to {s.to}
+                                </option>
+                              ))
                             ) : (
-                              <option disabled>{date ? "No slots for this day" : "Pick a date first"}</option>
+                              <option disabled>{date ? `No ${bookingMode} slots for this day` : "Pick a date first"}</option>
                             )}
                           </select>
                         </div>

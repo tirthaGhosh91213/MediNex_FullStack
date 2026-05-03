@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
-import { Plus, CheckCircle2, Clock, X, ImagePlus, Calendar, Users, ChevronDown, Trash2, Edit } from "lucide-react";
+import { Plus, CheckCircle2, Clock, X, ImagePlus, Calendar, Users, ChevronDown, Trash2, Edit, Video, Wifi, WifiOff } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { io } from "socket.io-client";
 import Cropper from 'react-easy-crop';
@@ -203,7 +203,7 @@ const ManageDoctors = () => {
     setSchedule((prev) => {
       const exists = prev.find((s) => s.day === day);
       if (exists) return prev.filter((s) => s.day !== day);
-      return [...prev, { day, from: "09:00", to: "13:00", max_patients: formData.max_patients_per_day }];
+      return [...prev, { day, from: "09:00", to: "13:00", max_patients: formData.max_patients_per_day, mode: "Offline" }];
     });
   };
 
@@ -348,10 +348,17 @@ const ManageDoctors = () => {
                           <span className="text-xs text-slate-400 italic">No slots assigned</span>
                       ) : (
                         <>
-                          {(doc.schedule || []).slice(0, 4).map((s) => (
-                            <span key={s.day} className="text-xs font-bold bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-100/50 shadow-sm">{s.day.slice(0,3)}</span>
+                          {(doc.schedule || []).slice(0, 5).map((s) => (
+                            <span key={s.day} className={`text-xs font-bold px-3 py-1.5 rounded-lg border shadow-sm flex items-center gap-1.5 ${
+                              s.mode === "Online"
+                                ? "bg-emerald-50 text-emerald-600 border-emerald-100/50"
+                                : "bg-indigo-50 text-indigo-600 border-indigo-100/50"
+                            }`}>
+                              {s.mode === "Online" ? <Video size={11} /> : <WifiOff size={11} />}
+                              {s.day.slice(0,3)}
+                            </span>
                           ))}
-                          {(doc.schedule || []).length > 4 && <span className="text-xs text-slate-500 font-bold px-2 py-1.5">+{doc.schedule.length - 4} more</span>}
+                          {(doc.schedule || []).length > 5 && <span className="text-xs text-slate-500 font-bold px-2 py-1.5">+{doc.schedule.length - 5} more</span>}
                         </>
                       )}
                     </div>
@@ -542,18 +549,43 @@ const ManageDoctors = () => {
                     <AnimatePresence>
                       {schedule.map((slot) => (
                         <motion.div key={slot.day} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                          className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                          <p className="text-sm font-bold text-blue-700 mb-3">{slot.day}</p>
+                          className={`border rounded-xl p-4 ${slot.mode === "Online" ? "bg-emerald-50 border-emerald-200" : "bg-blue-50 border-blue-100"}`}>
+                          <div className="flex items-center justify-between mb-3">
+                            <p className={`text-sm font-bold ${slot.mode === "Online" ? "text-emerald-700" : "text-blue-700"}`}>{slot.day}</p>
+                            {/* Online / Offline Toggle */}
+                            <div className="flex bg-white rounded-lg border border-slate-200 p-0.5 shadow-sm">
+                              <button type="button" onClick={() => updateSlot(slot.day, "mode", "Offline")}
+                                className={`px-3 py-1.5 rounded-md text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                                  slot.mode !== "Online"
+                                    ? "bg-slate-800 text-white shadow-sm"
+                                    : "text-slate-400 hover:text-slate-600"
+                                }`}>
+                                <WifiOff size={12} /> Offline
+                              </button>
+                              <button type="button" onClick={() => updateSlot(slot.day, "mode", "Online")}
+                                className={`px-3 py-1.5 rounded-md text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                                  slot.mode === "Online"
+                                    ? "bg-emerald-600 text-white shadow-sm"
+                                    : "text-slate-400 hover:text-slate-600"
+                                }`}>
+                                <Video size={12} /> Online
+                              </button>
+                            </div>
+                          </div>
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="text-xs text-slate-500 font-semibold block mb-1">From</label>
                               <input type="time" value={slot.from} onChange={e => updateSlot(slot.day, "from", e.target.value)}
-                                className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
+                                className={`w-full px-3 py-2 rounded-lg border text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 bg-white ${
+                                  slot.mode === "Online" ? "border-emerald-200 focus:ring-emerald-400" : "border-blue-200 focus:ring-blue-400"
+                                }`} />
                             </div>
                             <div>
                               <label className="text-xs text-slate-500 font-semibold block mb-1">To</label>
                               <input type="time" value={slot.to} onChange={e => updateSlot(slot.day, "to", e.target.value)}
-                                className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
+                                className={`w-full px-3 py-2 rounded-lg border text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 bg-white ${
+                                  slot.mode === "Online" ? "border-emerald-200 focus:ring-emerald-400" : "border-blue-200 focus:ring-blue-400"
+                                }`} />
                             </div>
                           </div>
                         </motion.div>
@@ -632,18 +664,43 @@ const ManageDoctors = () => {
                     <AnimatePresence>
                       {schedule.map((slot) => (
                         <motion.div key={slot.day} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-                          className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                          <p className="text-sm font-bold text-blue-700 mb-3">{slot.day}</p>
+                          className={`border rounded-xl p-4 ${slot.mode === "Online" ? "bg-emerald-50 border-emerald-200" : "bg-blue-50 border-blue-100"}`}>
+                          <div className="flex items-center justify-between mb-3">
+                            <p className={`text-sm font-bold ${slot.mode === "Online" ? "text-emerald-700" : "text-blue-700"}`}>{slot.day}</p>
+                            {/* Online / Offline Toggle */}
+                            <div className="flex bg-white rounded-lg border border-slate-200 p-0.5 shadow-sm">
+                              <button type="button" onClick={() => updateSlot(slot.day, "mode", "Offline")}
+                                className={`px-3 py-1.5 rounded-md text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                                  slot.mode !== "Online"
+                                    ? "bg-slate-800 text-white shadow-sm"
+                                    : "text-slate-400 hover:text-slate-600"
+                                }`}>
+                                <WifiOff size={12} /> Offline
+                              </button>
+                              <button type="button" onClick={() => updateSlot(slot.day, "mode", "Online")}
+                                className={`px-3 py-1.5 rounded-md text-[11px] font-bold flex items-center gap-1.5 transition-all ${
+                                  slot.mode === "Online"
+                                    ? "bg-emerald-600 text-white shadow-sm"
+                                    : "text-slate-400 hover:text-slate-600"
+                                }`}>
+                                <Video size={12} /> Online
+                              </button>
+                            </div>
+                          </div>
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <label className="text-xs text-slate-500 font-semibold block mb-1">From</label>
                               <input type="time" value={slot.from} onChange={e => updateSlot(slot.day, "from", e.target.value)}
-                                className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
+                                className={`w-full px-3 py-2 rounded-lg border text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 bg-white ${
+                                  slot.mode === "Online" ? "border-emerald-200 focus:ring-emerald-400" : "border-blue-200 focus:ring-blue-400"
+                                }`} />
                             </div>
                             <div>
                               <label className="text-xs text-slate-500 font-semibold block mb-1">To</label>
                               <input type="time" value={slot.to} onChange={e => updateSlot(slot.day, "to", e.target.value)}
-                                className="w-full px-3 py-2 rounded-lg border border-blue-200 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
+                                className={`w-full px-3 py-2 rounded-lg border text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 bg-white ${
+                                  slot.mode === "Online" ? "border-emerald-200 focus:ring-emerald-400" : "border-blue-200 focus:ring-blue-400"
+                                }`} />
                             </div>
                           </div>
                         </motion.div>

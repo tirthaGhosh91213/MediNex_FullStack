@@ -13,7 +13,7 @@ import {
   Menu,
   X,
   LayoutDashboard // <-- Added for the Doc Chambers icon
-} from "lucide-react"; 
+} from "lucide-react";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -55,10 +55,9 @@ const Navbar = () => {
             key={item.path}
             to={item.path}
             className={({ isActive }) =>
-              `flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${
-                isActive
-                  ? "bg-blue-50 text-blue-600 font-semibold"
-                  : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
+              `flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${isActive
+                ? "bg-blue-50 text-blue-600 font-semibold"
+                : "text-slate-600 hover:text-blue-600 hover:bg-slate-50"
               }`
             }
           >
@@ -69,7 +68,7 @@ const Navbar = () => {
 
       {/* Right Section */}
       <div className="flex items-center gap-4">
-        {token ? (
+        {token && user ? (
           <div className="relative" ref={profileRef}>
             {/* Profile Circle (Click to toggle) */}
             <div
@@ -77,7 +76,7 @@ const Navbar = () => {
               className="flex items-center gap-2 cursor-pointer p-1 pr-2 rounded-full border border-slate-200 hover:bg-slate-50 transition-colors"
             >
               <div className="w-9 h-9 flex items-center justify-center rounded-full bg-blue-600 text-white font-bold text-sm shadow-sm">
-                T
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
               </div>
               <ChevronDown size={16} className={`text-slate-600 transition-transform duration-200 ${profileOpen ? 'rotate-180' : ''}`} />
             </div>
@@ -86,36 +85,11 @@ const Navbar = () => {
             {profileOpen && (
               <div className="absolute right-0 mt-3 w-56 bg-white border border-slate-100 shadow-xl rounded-xl z-50 overflow-hidden transform opacity-100 scale-100 transition-all">
                 <div className="flex flex-col p-1.5 text-slate-700">
-                  <button
-                    onClick={() => {
-                      navigate("/my-profile");
-                      setProfileOpen(false);
-                    }}
-                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <User size={16} className="text-slate-400" /> My Profile
-                  </button>
-                  
-                  <button
-                    onClick={() => {
-                      navigate("/my-appointments");
-                      setProfileOpen(false);
-                    }}
-                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-slate-50 rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <Calendar size={16} className="text-slate-400" /> My Appointments
-                  </button>
 
-                  {/* NEW: Doc Chambers Option */}
-                  <button
-                    onClick={() => {
-                      navigate("/doc-chambers"); // This will route to your DashboardView
-                      setProfileOpen(false);
-                    }}
-                    className="flex items-center gap-3 px-3 py-2.5 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors text-sm font-medium"
-                  >
-                    <LayoutDashboard size={16} className="text-blue-500" /> Doc Chambers
-                  </button>
+
+
+
+
 
                   <div className="h-px bg-slate-100 my-1"></div>
 
@@ -163,8 +137,7 @@ const Navbar = () => {
               to={item.path}
               onClick={() => setMenuOpen(false)}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${
-                  isActive ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-50"
+                `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${isActive ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-50"
                 }`
               }
             >

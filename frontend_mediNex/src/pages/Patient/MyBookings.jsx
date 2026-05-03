@@ -9,8 +9,15 @@ import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "framer-motion";
 import VideoCallOverlay from "./VideoCallOverlay";
 import RatingModal from "./RatingModal";
+import { useAuth } from "../../context/AuthContext";
+import { io } from "socket.io-client";
+import { toast } from "react-hot-toast";
+
+const socket = io("http://localhost:4000");
 
 const MyBookings = () => {
+  const { user } = useAuth();
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,7 +27,34 @@ const MyBookings = () => {
 
   useEffect(() => {
     fetchMyBookings();
+    
+    // Live Clock for Countdown
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (user?._id) {
+      socket.emit("joinPatientRoom", user._id);
+    }
+    const handleSessionStarted = (data) => {
+      toast.success(data.message, { icon: "🎥" });
+      setBookings(prev => prev.map(b => b._id === data.bookingId ? { ...b, is_session_started: true, status: b.status === "Pending" ? "Accepted" : b.status } : b));
+    };
+    
+    const handleSessionEnded = (data) => {
+      toast.success(data.message, { icon: "✅" });
+      setBookings(prev => prev.map(b => b._id === data.bookingId ? { ...b, is_session_started: false, status: "Completed" } : b));
+    };
+
+    socket.on("sessionStarted", handleSessionStarted);
+    socket.on("sessionEnded", handleSessionEnded);
+    
+    return () => {
+      socket.off("sessionStarted", handleSessionStarted);
+      socket.off("sessionEnded", handleSessionEnded);
+    };
+  }, [user?._id]);
 
   const fetchMyBookings = async () => {
     setLoading(true);
@@ -99,6 +133,31 @@ const MyBookings = () => {
   const renderBookingCard = (booking, isExpiredSection) => {
     const doctor = booking.doctorId || {};
     const broker = booking.brokerId || {};
+
+    let remainingSeconds = 0;
+    let isNext = false;
+    if (!isExpiredSection && booking.booking_mode === "Online" && booking.time_slot && booking.date) {
+      const startTimeStr = booking.time_slot.split(" - ")[0]; // "10:00"
+      const [hours, minutes] = startTimeStr.split(":").map(Number);
+      const bookingDate = new Date(booking.date);
+      bookingDate.setHours(hours, minutes, 0, 0);
+      
+      remainingSeconds = Math.floor((bookingDate - currentTime) / 1000);
+      
+      // Is Next is not strictly needed since everyone waits for their turn, but we can keep it as a heads up
+      if (remainingSeconds > 0 && remainingSeconds <= 900 && !booking.is_session_started) {
+        isNext = true;
+      }
+    }
+
+    const formatTime = (totalSeconds) => {
+      if (totalSeconds <= 0) return "00:00:00";
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = totalSeconds % 60;
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
     return (
       <motion.div
         key={booking._id}
@@ -191,25 +250,60 @@ const MyBookings = () => {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center text-center">
+            <div className="flex flex-col items-center justify-center text-center w-full">
               <div className="w-12 h-12 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center mb-3">
                 <Video size={24} />
               </div>
               <p className="font-medium text-gray-900 text-sm mb-4">Virtual Consultation</p>
+              
               {isExpiredSection ? (
                 <div className="w-full py-2 px-4 rounded bg-gray-100 border border-gray-200 text-gray-500 font-medium text-sm text-center">
                   Expired
                 </div>
               ) : (
-                <button
-                  disabled={booking.status === "Pending" || booking.status === "Completed"}
-                  className="w-full py-2 px-4 rounded bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:text-gray-500 flex items-center justify-center gap-2"
-                  onClick={() => setActiveVideoCall(booking)}
-                >
-                  <Video size={16} /> Join Call
-                </button>
+                <div className="w-full space-y-3">
+                  {booking.is_session_started ? (
+                    <div className="animate-pulse bg-green-100 text-green-700 border border-green-200 py-1.5 px-3 rounded-lg text-xs font-bold w-full shadow-sm">
+                      Doctor is calling you!
+                    </div>
+                  ) : remainingSeconds <= 0 ? (
+                    <div className="animate-pulse bg-indigo-100 text-indigo-700 border border-indigo-200 py-1.5 px-3 rounded-lg text-xs font-bold w-full shadow-sm">
+                      Waiting for your turn...
+                    </div>
+                  ) : isNext && (
+                    <div className="bg-blue-50 text-blue-600 border border-blue-100 py-1.5 px-3 rounded-lg text-xs font-bold w-full shadow-sm">
+                      Your session block is starting soon.
+                    </div>
+                  )}
+                  
+                  {remainingSeconds > 0 ? (
+                    <div className="bg-slate-900 text-white rounded-xl p-3 font-mono tracking-widest text-lg shadow-inner w-full flex flex-col items-center border border-slate-700">
+                      <span className="text-[10px] text-slate-400 font-sans tracking-widest uppercase mb-1">Session Block Starts In</span>
+                      {formatTime(remainingSeconds)}
+                    </div>
+                  ) : null}
+
+                  <button
+                    disabled={booking.status === "Pending" || booking.status === "Completed" || remainingSeconds > 0 || !booking.is_session_started}
+                    className={`w-full py-2.5 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-sm border ${
+                      booking.is_session_started && remainingSeconds <= 0 && booking.status !== "Completed"
+                      ? 'bg-blue-600 text-white hover:bg-blue-700 border-blue-700 hover:shadow-md'
+                      : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70'
+                    }`}
+                    onClick={() => {
+                      if (booking.meeting_link) {
+                        window.open(booking.meeting_link, "_blank");
+                      } else {
+                        toast.error("Meeting link not found.");
+                      }
+                    }}
+                  >
+                    <Video size={16} /> 
+                    {booking.is_session_started && remainingSeconds <= 0 ? "Join Video Call" : (remainingSeconds > 0 ? "Wait for Session" : "Please Wait...")}
+                  </button>
+                </div>
               )}
-              {booking.status === "Pending" && <p className="text-xs text-gray-500 mt-3">Awaiting confirmation</p>}
+              {booking.status === "Pending" && <p className="text-xs text-gray-500 mt-3 font-medium">Awaiting confirmation</p>}
             </div>
           )}
         </div>

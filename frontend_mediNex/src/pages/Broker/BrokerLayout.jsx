@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { toast } from "react-hot-toast";
@@ -7,10 +7,11 @@ import { io } from "socket.io-client";
 import { motion } from "framer-motion";
 import { 
   Building2, LayoutDashboard, Users, CalendarCheck, 
-  ActivitySquare, LogOut, Bell, AlertTriangle, Trash2, X, TrendingUp
+  ActivitySquare, LogOut, Bell, AlertTriangle, Trash2, X, TrendingUp, Video
 } from "lucide-react";
 import axios from "axios";
 import { AnimatePresence } from "framer-motion";
+import EmergencyAlertModal from "../../components/EmergencyAlertModal";
 
 const socket = io("http://localhost:4000");
 
@@ -22,11 +23,13 @@ const BrokerLayout = () => {
     { path: "/broker/dashboard", name: "Overview", icon: <LayoutDashboard size={20} /> },
     { path: "/broker/doctors", name: "Manage Doctors", icon: <Users size={20} /> },
     { path: "/broker/appointments", name: "Appointments", icon: <CalendarCheck size={20} /> },
+    { path: "/broker/online-sessions", name: "Online Sessions", icon: <Video size={20} /> },
     { path: "/broker/performance", name: "Clinic Performance", icon: <TrendingUp size={20} /> },
   ];
 
   const [notifications, setNotifications] = React.useState([]);
   const [showNotifications, setShowNotifications] = React.useState(false);
+  const [emergencyAlert, setEmergencyAlert] = useState(null);
   const backendUrl = "http://localhost:4000";
 
   const fetchNotifications = async () => {
@@ -88,16 +91,40 @@ const BrokerLayout = () => {
       setNotifications(prev => [data, ...prev]);
     };
 
+    // ── Emergency Booking Alert (30-second ring) ─────────────────
+    const handleNewBooking = (data) => {
+      console.log("🚨 Emergency Booking Received:", data);
+      // Show the fullscreen emergency alert with 30s alarm
+      setEmergencyAlert(data);
+      // Also add to notifications list
+      setNotifications(prev => [{
+        message: data.message || "🚨 Emergency booking received!",
+        createdAt: new Date().toISOString(),
+      }, ...prev]);
+    };
+
     socket.on("doctorApproved", handleDoctorApproved);
+    socket.on("newBooking", handleNewBooking);
     
     return () => {
       socket.off("doctorApproved", handleDoctorApproved);
+      socket.off("newBooking", handleNewBooking);
     };
   }, [user?._id]);
 
 
   return (
     <div className="flex h-screen bg-slate-50 overflow-hidden">
+
+      {/* ── Emergency Alert Modal (30-second ring) ───────────────── */}
+      <AnimatePresence>
+        {emergencyAlert && (
+          <EmergencyAlertModal
+            booking={emergencyAlert}
+            onDismiss={() => setEmergencyAlert(null)}
+          />
+        )}
+      </AnimatePresence>
       
       {/* Sidebar */}
       <aside className="w-72 bg-white border-r border-slate-200 flex flex-col hidden md:flex z-10 shadow-sm">

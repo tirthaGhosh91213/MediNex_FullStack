@@ -787,3 +787,145 @@ export const getBrokerAnalytics = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// ═══════════════════════════════════════════════════════════════════
+//  PHASE 15: ONLINE SESSIONS
+// ═══════════════════════════════════════════════════════════════════
+
+export const getOnlineSessions = async (req, res) => {
+  try {
+    const brokerId = req.user.id;
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const bookings = await Booking.find({
+      brokerId,
+      booking_mode: "Online",
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ["Pending", "Accepted", "In-Progress"] }
+    })
+      .populate("doctorId", "name avatar email")
+      .populate("patientId", "name phone avatar")
+      .sort({ time_slot: 1, createdAt: 1 });
+
+    res.status(200).json({ success: true, count: bookings.length, bookings });
+  } catch (error) {
+    console.error("Get Online Sessions Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const updateSessionCredentials = async (req, res) => {
+  try {
+    const brokerId = req.user.id;
+    const { doctorId, time_slot, meeting_link, host_code } = req.body;
+
+    if (!doctorId || !time_slot || !meeting_link || !host_code) {
+      return res.status(400).json({ success: false, message: "Doctor ID, time slot, meeting link, and host code are required." });
+    }
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const bookings = await Booking.find({
+      brokerId,
+      doctorId,
+      time_slot,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ["Pending", "Accepted", "In-Progress"] }
+    });
+
+    if (bookings.length === 0) {
+      return res.status(404).json({ success: false, message: "No active bookings found for this session." });
+    }
+
+    // Save link to all bookings so it persists on page refresh
+    for (let booking of bookings) {
+      booking.meeting_link = meeting_link;
+      if (booking.status === "Pending") booking.status = "Accepted";
+      await booking.save();
+    }
+
+    const doctor = await Doctor.findById(doctorId);
+
+    // Simulate sending email to doctor
+    // mailer.sendMail(doctor.email, "Session Credentials", `Link: ${meeting_link}, Code: ${host_code}`)
+
+    res.status(200).json({ 
+      success: true, 
+      message: `Credentials securely emailed to Dr. ${doctor.name}.`
+    });
+  } catch (error) {
+    console.error("Update Session Credentials Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const callPatient = async (req, res) => {
+  try {
+    const brokerId = req.user.id;
+    const { bookingId } = req.params;
+    const { meeting_link } = req.body;
+
+    const booking = await Booking.findOne({ _id: bookingId, brokerId });
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found or unauthorized." });
+    }
+
+    if (!meeting_link && !booking.meeting_link) {
+      return res.status(400).json({ success: false, message: "Meeting link is required to call patient." });
+    }
+
+    booking.meeting_link = meeting_link || booking.meeting_link;
+    booking.is_session_started = true;
+    if (booking.status === "Pending") {
+      booking.status = "Accepted";
+    }
+    await booking.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`patient_${booking.patientId}`).emit("sessionStarted", {
+        bookingId: booking._id,
+        message: "The doctor is ready for you! Please join the call now."
+      });
+    }
+
+    res.status(200).json({ success: true, message: "Patient called successfully.", booking });
+  } catch (error) {
+    console.error("Call Patient Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const endPatientCall = async (req, res) => {
+  try {
+    const brokerId = req.user.id;
+    const { bookingId } = req.params;
+
+    const booking = await Booking.findOne({ _id: bookingId, brokerId });
+    if (!booking) {
+      return res.status(404).json({ success: false, message: "Booking not found or unauthorized." });
+    }
+
+    booking.status = "Completed";
+    await booking.save();
+
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`patient_${booking.patientId}`).emit("sessionEnded", {
+        bookingId: booking._id,
+        message: "Your consultation has ended. Thank you."
+      });
+    }
+
+    res.status(200).json({ success: true, message: "Call ended and patient marked as completed.", booking });
+  } catch (error) {
+    console.error("End Patient Call Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

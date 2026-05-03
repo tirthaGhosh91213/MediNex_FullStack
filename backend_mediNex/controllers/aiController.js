@@ -103,7 +103,7 @@ export const analyzePrescription = async (req, res) => {
     }
 
     // Save this parsed array into the Patient's database schema under medication_alarms
-    const patientId = req.userId; // Provided by verifyToken middleware
+    const patientId = req.user.id; // Provided by verifyToken middleware
     const patient = await Patient.findById(patientId);
     
     if (!patient) {

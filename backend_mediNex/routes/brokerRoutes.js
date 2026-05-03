@@ -92,4 +92,11 @@ brokerRouter.get("/today-patients/:doctorId", verifyToken, isBroker, getTodayPat
 brokerRouter.post("/broadcast", verifyToken, isBroker, broadcastMessage);
 brokerRouter.get("/analytics", verifyToken, isBroker, getBrokerAnalytics);
 
+// ── Phase 15: Online Sessions ───────────────────────────────────
+import { getOnlineSessions, updateSessionCredentials, callPatient, endPatientCall } from "../controllers/brokerController.js";
+brokerRouter.get("/online-sessions", verifyToken, isBroker, getOnlineSessions);
+brokerRouter.put("/session/credentials", verifyToken, isBroker, updateSessionCredentials);
+brokerRouter.put("/bookings/:bookingId/call", verifyToken, isBroker, callPatient);
+brokerRouter.put("/bookings/:bookingId/end-call", verifyToken, isBroker, endPatientCall);
+
 export default brokerRouter;

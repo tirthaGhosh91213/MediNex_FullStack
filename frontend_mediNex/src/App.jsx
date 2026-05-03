@@ -17,6 +17,7 @@ import MyBookings from "./pages/Patient/MyBookings";
 import HealthVault from "./pages/Patient/HealthVault";
 import DoctorDetails from "./pages/Patient/DoctorDetails";
 import AIAssistant from "./pages/Patient/AIAssistant";
+import SessionRoom from "./pages/SessionRoom";
 
 // Broker Imports
 import BrokerLayout from "./pages/Broker/BrokerLayout";
@@ -24,6 +25,7 @@ import BrokerOverview from "./pages/Broker/Dashboard/BrokerOverview";
 import ManageDoctors from "./pages/Broker/Doctors/ManageDoctors";
 import BookingRequests from "./pages/Broker/Bookings/BookingRequests";
 import LiveQueue from "./pages/Broker/Queue/LiveQueue";
+import OnlineSessions from "./pages/Broker/Dashboard/OnlineSessions";
 import ClinicPerformance from "./pages/Broker/Dashboard/ClinicPerformance";
 
 // Admin Imports
@@ -54,6 +56,7 @@ function App() {
         <Route path="/doctors/:specialty" element={<Doctors />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/session/:roomId" element={<SessionRoom />} />
 
         {/* Protected Patient Routes */}
         <Route element={<ProtectedRoute allowedRole="Patient" />}>
@@ -73,6 +76,7 @@ function App() {
             <Route path="doctors" element={<ManageDoctors />} />
             <Route path="appointments" element={<BookingRequests />} />
             <Route path="queue" element={<LiveQueue />} />
+            <Route path="online-sessions" element={<OnlineSessions />} />
             <Route path="performance" element={<ClinicPerformance />} />
           </Route>
         </Route>

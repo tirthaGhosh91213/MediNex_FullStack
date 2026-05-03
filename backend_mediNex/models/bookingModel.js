@@ -93,6 +93,12 @@ const bookingSchema = new mongoose.Schema(
       default: "",
     },
 
+    // Whether the manager has started the session
+    is_session_started: {
+      type: Boolean,
+      default: false,
+    },
+
     // URL of the uploaded e-prescription (PDF/Image on Cloudinary/Firebase)
     // Set when the consultation is completed
     prescription_url: {

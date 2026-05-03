@@ -79,7 +79,7 @@ const doctorSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
-    // Weekly schedule: [{day, from, to, max_patients}]
+    // Weekly schedule: [{day, from, to, max_patients, mode}]
     schedule: {
       type: [
         {
@@ -87,6 +87,7 @@ const doctorSchema = new mongoose.Schema(
           from: { type: String, required: true }, // "10:00"
           to: { type: String, required: true },   // "13:30"
           max_patients: { type: Number, default: 20 },
+          mode: { type: String, enum: ["Online", "Offline"], default: "Offline" },
         },
       ],
       default: [],

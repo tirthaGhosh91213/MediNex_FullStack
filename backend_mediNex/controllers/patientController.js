@@ -391,11 +391,11 @@ export const createBooking = async (req, res) => {
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const bookingDayName = days[new Date(date).getDay()];
     
-    const scheduleForDay = doctor.schedule.find(s => s.day === bookingDayName);
+    const scheduleForDay = doctor.schedule.find(s => s.day === bookingDayName && s.mode === booking_mode);
     if (!scheduleForDay) {
       return res.status(400).json({
         success: false,
-        message: `Doctor is not available on ${bookingDayName}.`,
+        message: `Doctor is not available for ${booking_mode} consultation on ${bookingDayName}.`,
       });
     }
 
@@ -666,12 +666,18 @@ export const createEmergencyBooking = async (req, res) => {
       notes: `🚨 EMERGENCY: ${emergency_reason}`,
     });
 
-    // Emit socket notification to broker
+    // Emit socket notification to broker (populate patient & doctor names for the alert)
     const io = req.app.get("io");
     if (io) {
+      const patient = await Patient.findById(patientId).select("name phone");
+      const populatedBooking = {
+        ...booking.toObject(),
+        patientId: patient,
+        doctorId: { name: doctor.name, specialization: doctor.specialization },
+      };
       io.to(`broker_${doctor.brokerId}`).emit("newBooking", {
-        message: `🚨 Emergency booking from a patient!`,
-        booking,
+        message: `🚨 Emergency booking from ${patient?.name || "a patient"}!`,
+        booking: populatedBooking,
       });
     }
 

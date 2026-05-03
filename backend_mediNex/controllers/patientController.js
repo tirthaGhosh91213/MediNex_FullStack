@@ -459,20 +459,31 @@ export const createBooking = async (req, res) => {
 
       queue_token_number = existingCount + 1;
     } else {
-      // Also check for Online bookings if they share the limit or have their own
+      // For Online bookings, sequential token specifically for this time slot
       const existingOnlineCount = await Booking.countDocuments({
+        doctorId,
+        date: { $gte: startOfDay, $lte: endOfDay },
+        booking_mode: "Online",
+        time_slot,
+        status: { $nin: ["Cancelled"] },
+      });
+
+      // Total online count to check max limit
+      const totalOnlineCount = await Booking.countDocuments({
         doctorId,
         date: { $gte: startOfDay, $lte: endOfDay },
         booking_mode: "Online",
         status: { $nin: ["Cancelled"] },
       });
 
-      if (existingOnlineCount >= scheduleForDay.max_patients) {
+      if (totalOnlineCount >= scheduleForDay.max_patients) {
          return res.status(400).json({
           success: false,
           message: "Doctor has reached the maximum limit for online consultations today.",
         });
       }
+
+      queue_token_number = existingOnlineCount + 1;
     }
 
     // ── Step 4: Create the booking (status defaults to 'Pending') ─

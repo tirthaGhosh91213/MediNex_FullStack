@@ -103,3 +103,42 @@ export const getLiveQueue = async (req, res) => {
     });
   }
 };
+
+export const getDoctorSessionQueue = async (req, res) => {
+  try {
+    const { doctorId, roomId } = req.params;
+    
+    // Basic verification
+    const doctor = await Booking.findOne({ doctorId }).populate("doctorId", "name specialization avatar");
+    if (!doctor) return res.status(404).json({ success: false, message: "Doctor not found in bookings." });
+
+    const today = new Date();
+    const startOfDay = new Date(today);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const bookings = await Booking.find({
+      doctorId,
+      booking_mode: "Online",
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $in: ["Pending", "Accepted", "In-Progress", "Completed"] }
+    })
+      .populate("patientId", "name avatar phone")
+      .sort({ time_slot: 1, queue_token_number: 1 });
+
+    // Filter by the roomId which is likely part of the meeting_link
+    // Or just return all online patients for today, as the UI can group them.
+    // The doctor UI will just show the queue.
+    const sessionBookings = bookings.filter(b => b.meeting_link && b.meeting_link.includes(roomId));
+
+    res.status(200).json({
+      success: true,
+      doctor: doctor.doctorId,
+      queue: sessionBookings
+    });
+  } catch (error) {
+    console.error("Get Doctor Session Queue Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

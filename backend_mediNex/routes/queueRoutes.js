@@ -1,5 +1,5 @@
 import express from "express";
-import { getLiveQueue } from "../controllers/queueController.js";
+import { getLiveQueue, getDoctorSessionQueue } from "../controllers/queueController.js";
 
 const queueRouter = express.Router();
 
@@ -13,5 +13,6 @@ const queueRouter = express.Router();
 
 // ── Public route (no auth needed — displayed on waiting room screens) ──
 queueRouter.get("/live/:doctorId", getLiveQueue);
+queueRouter.get("/doctor-session/:doctorId/:roomId", getDoctorSessionQueue);
 
 export default queueRouter;

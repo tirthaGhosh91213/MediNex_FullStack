@@ -78,7 +78,7 @@ const OnlineSessions = () => {
   const handleShareCredentials = async (sessionGroup) => {
     setProcessing(prev => ({ ...prev, [`share_${sessionGroup.id}`]: true }));
     try {
-      const generatedLink = `${window.location.origin}/session/${sessionGroup.id}`;
+      const generatedLink = `${window.location.origin}/telemedicine-room/${sessionGroup.id}?doctorId=${sessionGroup.doctor._id}`;
 
       const { data } = await axios.put(`${backendUrl}/api/broker/session/credentials`, 
         { 
@@ -109,70 +109,8 @@ const OnlineSessions = () => {
     }
   };
 
-  const handleCallPatient = async (sessionGroup, patientBooking) => {
-    let meeting_link = patientBooking.meeting_link;
-    // Check if any patient in the group has a meeting link
-    if (!meeting_link) {
-       const anyLink = sessionGroup.patients.find(p => p.meeting_link)?.meeting_link;
-       if (anyLink) meeting_link = anyLink;
-    }
-
-    if (!meeting_link) {
-      toast.error("Please click 'Initialize & Email Doctor' first to set up this session.");
-      return;
-    }
-
-    setProcessing(prev => ({ ...prev, [`call_${patientBooking._id}`]: true }));
-    try {
-      const { data } = await axios.put(`${backendUrl}/api/broker/bookings/${patientBooking._id}/call`, 
-        { meeting_link },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (data.success) {
-        toast.success(data.message);
-        // Update the specific patient's booking status
-        setGroupedSessions(prev => prev.map(g => {
-          if (g.id === sessionGroup.id) {
-            return {
-              ...g,
-              patients: g.patients.map(p => p._id === patientBooking._id ? { ...p, is_session_started: true, meeting_link } : p)
-            };
-          }
-          return g;
-        }));
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to call patient.");
-    } finally {
-      setProcessing(prev => ({ ...prev, [`call_${patientBooking._id}`]: false }));
-    }
-  };
-
-  const handleEndCall = async (sessionGroup, patientBooking) => {
-    setProcessing(prev => ({ ...prev, [`end_${patientBooking._id}`]: true }));
-    try {
-      const { data } = await axios.put(`${backendUrl}/api/broker/bookings/${patientBooking._id}/end-call`, 
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (data.success) {
-        toast.success(data.message);
-        setGroupedSessions(prev => prev.map(g => {
-          if (g.id === sessionGroup.id) {
-            return {
-              ...g,
-              patients: g.patients.map(p => p._id === patientBooking._id ? { ...p, status: "Completed" } : p)
-            };
-          }
-          return g;
-        }));
-      }
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to end call.");
-    } finally {
-      setProcessing(prev => ({ ...prev, [`end_${patientBooking._id}`]: false }));
-    }
-  };
+  // Doctor controls the queue flow from their TelemedicineRoom.
+  // The clinic manager only initializes the session and monitors status.
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-20">
@@ -269,27 +207,13 @@ const OnlineSessions = () => {
                           {patient.status === "Completed" ? (
                             <span className="text-green-600 font-bold text-sm bg-green-100 px-3 py-1.5 rounded-lg flex items-center gap-1"><CheckCircle2 size={14} /> Completed</span>
                           ) : patient.is_session_started ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-blue-600 font-bold text-sm bg-blue-100 px-3 py-2 rounded-xl flex items-center gap-1.5 border border-blue-200">
-                                <Video size={16} className="animate-pulse" /> Inside
-                              </span>
-                              <button
-                                onClick={() => handleEndCall(group, patient)}
-                                disabled={processing[`end_${patient._id}`]}
-                                className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-xl text-sm transition-all shadow-sm flex items-center gap-1.5 disabled:opacity-50"
-                              >
-                                {processing[`end_${patient._id}`] ? <Loader2 size={16} className="animate-spin" /> : "End Call"}
-                              </button>
-                            </div>
+                            <span className="text-blue-600 font-bold text-sm bg-blue-100 px-3 py-1.5 rounded-xl flex items-center gap-1.5 border border-blue-200">
+                              <Video size={16} className="animate-pulse" /> In Session
+                            </span>
                           ) : (
-                            <button
-                              onClick={() => handleCallPatient(group, patient)}
-                              disabled={processing[`call_${patient._id}`]}
-                              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-5 rounded-xl text-sm transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
-                            >
-                              {processing[`call_${patient._id}`] ? <Loader2 size={16} className="animate-spin" /> : <PlayCircle size={16} />}
-                              Call Next
-                            </button>
+                            <span className="text-amber-600 font-bold text-sm bg-amber-100 px-3 py-1.5 rounded-xl flex items-center gap-1.5 border border-amber-200">
+                              Waiting
+                            </span>
                           )}
                         </div>
                       </div>

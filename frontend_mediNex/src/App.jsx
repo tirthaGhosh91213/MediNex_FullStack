@@ -18,6 +18,7 @@ import HealthVault from "./pages/Patient/HealthVault";
 import DoctorDetails from "./pages/Patient/DoctorDetails";
 import AIAssistant from "./pages/Patient/AIAssistant";
 import SessionRoom from "./pages/SessionRoom";
+import TelemedicineRoom from "./pages/TelemedicineRoom";
 
 // Broker Imports
 import BrokerLayout from "./pages/Broker/BrokerLayout";
@@ -57,6 +58,7 @@ function App() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/session/:roomId" element={<SessionRoom />} />
+        <Route path="/telemedicine-room/:roomId" element={<TelemedicineRoom />} />
 
         {/* Protected Patient Routes */}
         <Route element={<ProtectedRoute allowedRole="Patient" />}>

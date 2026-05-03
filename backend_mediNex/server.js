@@ -60,6 +60,46 @@ io.on("connection", (socket) => {
     console.log(`🏥 Broker ${brokerId} joined room: broker_${brokerId}`);
   });
 
+  // ── WebRTC Signaling & Telemedicine Events ─────────────────
+  socket.on("joinTelemedicineRoom", (roomId) => {
+    socket.join(`telemed_${roomId}`);
+    console.log(`📹 Client joined telemedicine room: telemed_${roomId}`);
+    socket.to(`telemed_${roomId}`).emit("user-connected", socket.id);
+  });
+
+  socket.on("webrtc_offer", (data) => {
+    socket.to(`telemed_${data.roomId}`).emit("webrtc_offer", {
+      sdp: data.sdp,
+      senderId: socket.id
+    });
+  });
+
+  socket.on("webrtc_answer", (data) => {
+    socket.to(`telemed_${data.roomId}`).emit("webrtc_answer", {
+      sdp: data.sdp,
+      senderId: socket.id
+    });
+  });
+
+  socket.on("webrtc_ice_candidate", (data) => {
+    socket.to(`telemed_${data.roomId}`).emit("webrtc_ice_candidate", {
+      candidate: data.candidate,
+      senderId: socket.id
+    });
+  });
+
+  socket.on("you_are_next", (data) => {
+    io.to(`patient_${data.patientId}`).emit("you_are_next", data);
+  });
+
+  socket.on("end_telemed_call", (data) => {
+    socket.to(`telemed_${data.roomId}`).emit("end_telemed_call");
+  });
+
+  socket.on("chat_message", (data) => {
+    io.to(`telemed_${data.roomId}`).emit("chat_message", data);
+  });
+
   // ── Handle disconnection ───────────────────────────────────
   socket.on("disconnect", () => {
     console.log(`❌ Client disconnected: ${socket.id}`);

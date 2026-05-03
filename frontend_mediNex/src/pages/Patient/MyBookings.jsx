@@ -21,9 +21,14 @@ const MyBookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [activeTab, setActiveTab] = useState("upcoming");
   const [activeVideoCall, setActiveVideoCall] = useState(null); // stores booking obj
   const [reviewBooking, setReviewBooking] = useState(null); // stores booking obj for reviewing
   const [showQrModal, setShowQrModal] = useState(null); // stores booking obj for QR
+  
+  // Alarm states
+  const [showAlarmModal, setShowAlarmModal] = useState(null);
+  const [ringtone] = useState(new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3')); // generic ringtone
 
   useEffect(() => {
     fetchMyBookings();
@@ -39,7 +44,7 @@ const MyBookings = () => {
     }
     const handleSessionStarted = (data) => {
       toast.success(data.message, { icon: "🎥" });
-      setBookings(prev => prev.map(b => b._id === data.bookingId ? { ...b, is_session_started: true, status: b.status === "Pending" ? "Accepted" : b.status } : b));
+      setBookings(prev => prev.map(b => b._id === data.bookingId ? { ...b, is_session_started: true, meeting_link: data.meeting_link || b.meeting_link, status: b.status === "Pending" ? "Accepted" : b.status } : b));
     };
     
     const handleSessionEnded = (data) => {
@@ -47,14 +52,31 @@ const MyBookings = () => {
       setBookings(prev => prev.map(b => b._id === data.bookingId ? { ...b, is_session_started: false, status: "Completed" } : b));
     };
 
+    const handleYouAreNext = (data) => {
+      // Start 30 sec ringtone
+      ringtone.loop = true;
+      ringtone.play().catch(e => console.log("Audio play blocked:", e));
+      setShowAlarmModal(data);
+      
+      // Auto stop after 30 seconds
+      setTimeout(() => {
+        ringtone.pause();
+        ringtone.currentTime = 0;
+        setShowAlarmModal(null);
+      }, 30000);
+    };
+
     socket.on("sessionStarted", handleSessionStarted);
     socket.on("sessionEnded", handleSessionEnded);
+    socket.on("you_are_next", handleYouAreNext);
     
     return () => {
       socket.off("sessionStarted", handleSessionStarted);
       socket.off("sessionEnded", handleSessionEnded);
+      socket.off("you_are_next", handleYouAreNext);
+      ringtone.pause();
     };
-  }, [user?._id]);
+  }, [user?._id, ringtone]);
 
   const fetchMyBookings = async () => {
     setLoading(true);
@@ -118,17 +140,21 @@ const MyBookings = () => {
 
   const sortedBookings = [...bookings].sort((a, b) => new Date(a.date) - new Date(b.date));
 
+  const completedBookings = sortedBookings.filter(b => b.status === "Completed").reverse();
+
   const upcomingBookings = sortedBookings.filter(b => {
+    if (b.status === "Completed") return false;
     const bookingDate = new Date(b.date);
     bookingDate.setHours(0, 0, 0, 0);
     return bookingDate >= today;
   });
 
-  const pastBookings = sortedBookings.filter(b => {
+  const expiredBookings = sortedBookings.filter(b => {
+    if (b.status === "Completed") return false;
     const bookingDate = new Date(b.date);
     bookingDate.setHours(0, 0, 0, 0);
     return bookingDate < today;
-  });
+  }).reverse();
 
   const renderBookingCard = (booking, isExpiredSection) => {
     const doctor = booking.doctorId || {};
@@ -254,7 +280,10 @@ const MyBookings = () => {
               <div className="w-12 h-12 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center mb-3">
                 <Video size={24} />
               </div>
-              <p className="font-medium text-gray-900 text-sm mb-4">Virtual Consultation</p>
+              <p className="font-medium text-gray-900 text-sm mb-2">Virtual Consultation</p>
+              <div className="bg-blue-50 border border-blue-200 py-1.5 px-4 rounded-full text-blue-700 text-xs font-bold mb-4 flex items-center gap-2">
+                <Ticket size={14} /> Appointment No: #{booking.queue_token_number > 0 ? booking.queue_token_number : '--'}
+              </div>
               
               {isExpiredSection ? (
                 <div className="w-full py-2 px-4 rounded bg-gray-100 border border-gray-200 text-gray-500 font-medium text-sm text-center">
@@ -318,13 +347,25 @@ const MyBookings = () => {
           <h2 className="text-2xl font-semibold text-gray-900">Medical Appointments</h2>
           <p className="text-gray-500 text-sm mt-1">Manage and track your healthcare schedule.</p>
         </div>
-        <div className="flex items-center gap-3 bg-gray-50 px-3 py-2 rounded-md border border-gray-200">
-          <div className="px-3 py-1 bg-white border border-gray-200 text-gray-700 rounded text-xs font-medium">
-            Upcoming: {upcomingBookings.length}
-          </div>
-          <div className="px-3 py-1 bg-white border border-gray-200 text-gray-700 rounded text-xs font-medium">
-            History: {pastBookings.length}
-          </div>
+        <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200 w-full md:w-auto overflow-x-auto">
+          <button
+            onClick={() => setActiveTab("upcoming")}
+            className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === "upcoming" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            Upcoming ({upcomingBookings.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("completed")}
+            className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === "completed" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            Completed ({completedBookings.length})
+          </button>
+          <button
+            onClick={() => setActiveTab("expired")}
+            className={`flex-1 md:flex-none px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === "expired" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+          >
+            Expired ({expiredBookings.length})
+          </button>
         </div>
       </div>
 
@@ -333,11 +374,10 @@ const MyBookings = () => {
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
           <p className="text-gray-500 text-sm font-medium">Loading appointments...</p>
         </div>
-      ) : bookings.length > 0 ? (
-        <div className="space-y-12">
-          {upcomingBookings.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Active & Upcoming</h3>
+      ) : (
+        <div className="space-y-6">
+          {activeTab === "upcoming" && (
+            upcomingBookings.length > 0 ? (
               <motion.div
                 variants={container}
                 initial="hidden"
@@ -346,32 +386,64 @@ const MyBookings = () => {
               >
                 {upcomingBookings.map((booking) => renderBookingCard(booking, false))}
               </motion.div>
-            </div>
+            ) : (
+              <div className="bg-white p-10 rounded-lg shadow-sm border border-gray-200 text-center flex flex-col items-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
+                  <Calendar size={28} />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">No upcoming bookings</h3>
+                <p className="text-gray-500 mt-2 max-w-sm mx-auto text-sm">
+                  You don't have any upcoming appointments scheduled.
+                </p>
+              </div>
+            )
           )}
 
-          {pastBookings.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 mt-8 pt-8 border-t border-gray-100">Past & Expired</h3>
+          {activeTab === "completed" && (
+            completedBookings.length > 0 ? (
               <motion.div
                 variants={container}
                 initial="hidden"
                 animate="show"
                 className="grid grid-cols-1 gap-6"
               >
-                {pastBookings.map((booking) => renderBookingCard(booking, true))}
+                {completedBookings.map((booking) => renderBookingCard(booking, true))}
               </motion.div>
-            </div>
+            ) : (
+              <div className="bg-white p-10 rounded-lg shadow-sm border border-gray-200 text-center flex flex-col items-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
+                  <CheckCircle2 size={28} />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">No completed bookings</h3>
+                <p className="text-gray-500 mt-2 max-w-sm mx-auto text-sm">
+                  You don't have any completed appointments yet.
+                </p>
+              </div>
+            )
           )}
-        </div>
-      ) : (
-        <div className="bg-white p-10 rounded-lg shadow-sm border border-gray-200 text-center flex flex-col items-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
-            <Calendar size={28} />
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900">No bookings found</h3>
-          <p className="text-gray-500 mt-2 max-w-sm mx-auto text-sm">
-            You don't have any appointments currently scheduled.
-          </p>
+
+          {activeTab === "expired" && (
+            expiredBookings.length > 0 ? (
+              <motion.div
+                variants={container}
+                initial="hidden"
+                animate="show"
+                className="grid grid-cols-1 gap-6"
+              >
+                {expiredBookings.map((booking) => renderBookingCard(booking, true))}
+              </motion.div>
+            ) : (
+              <div className="bg-white p-10 rounded-lg shadow-sm border border-gray-200 text-center flex flex-col items-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
+                  <Clock size={28} />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">No expired bookings</h3>
+                <p className="text-gray-500 mt-2 max-w-sm mx-auto text-sm">
+                  You don't have any expired appointments.
+                </p>
+              </div>
+            )
+          )}
         </div>
       )}
 
@@ -436,6 +508,46 @@ const MyBookings = () => {
               <p className="text-xs text-gray-500 mt-4">
                 Valid on {new Date(showQrModal.date).toLocaleDateString()}
               </p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Alarm Modal Overlay */}
+      <AnimatePresence>
+        {showAlarmModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-blue-50/50 -z-10"></div>
+              
+              <motion.div 
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner border border-blue-200"
+              >
+                <Video size={40} className="animate-pulse" />
+              </motion.div>
+              
+              <h3 className="text-2xl font-black text-gray-900 mb-2">Be ready!</h3>
+              <p className="text-gray-600 font-medium mb-6">
+                You are next in the queue. Your consultation will begin momentarily.
+              </p>
+              
+              <button
+                onClick={() => {
+                  ringtone.pause();
+                  ringtone.currentTime = 0;
+                  setShowAlarmModal(null);
+                }}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm py-3.5 px-4 rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+              >
+                <X size={18} /> Stop Alarm & Wait
+              </button>
             </motion.div>
           </div>
         )}

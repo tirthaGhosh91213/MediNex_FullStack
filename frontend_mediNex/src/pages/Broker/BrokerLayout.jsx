@@ -127,50 +127,55 @@ const BrokerLayout = () => {
       </AnimatePresence>
       
       {/* Sidebar */}
-      <aside className="w-72 bg-white border-r border-slate-200 flex flex-col hidden md:flex z-10 shadow-sm">
-        <div className="p-6 border-b border-slate-100 flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/20">
+      <aside className="w-72 bg-[#0F172A] text-slate-300 flex flex-col hidden md:flex z-10 shadow-[20px_0_60px_-15px_rgba(0,0,0,0.1)]">
+        <div className="p-6 border-b border-white/5 flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-tr from-blue-600 to-indigo-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-900/50">
             <Building2 size={24} />
           </div>
           <div>
-            <h1 className="font-bold text-slate-800 text-lg leading-tight">Clinic Portal</h1>
-            <p className="text-xs font-semibold text-blue-600 uppercase tracking-wider">MediConnect Manager</p>
+            <h1 className="font-bold text-white text-lg leading-tight">Clinic Portal</h1>
+            <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.15em]">MediConnect Manager</p>
           </div>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {menuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <NavLink
                 key={item.name}
                 to={item.path}
-                className={`relative flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all group overflow-hidden ${
-                  isActive ? "text-blue-700 bg-blue-50/80" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                className={`relative flex items-center gap-4 px-5 py-3.5 rounded-2xl text-sm font-bold transition-all group overflow-hidden ${
+                  isActive 
+                  ? "text-white bg-blue-600 shadow-lg shadow-blue-600/20" 
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
                 }`}
               >
-                {isActive && (
-                  <motion.div layoutId="sidebar-active" className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 rounded-r-md" />
-                )}
-                <span className={isActive ? "text-blue-600" : "text-slate-400 group-hover:text-blue-500 transition-colors"}>
+                <span className={`${isActive ? "text-white" : "text-slate-500 group-hover:text-blue-400 transition-colors"}`}>
                   {item.icon}
                 </span>
                 {item.name}
+                {isActive && (
+                  <motion.div 
+                    layoutId="sidebar-active" 
+                    className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" 
+                  />
+                )}
               </NavLink>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-100">
-          <div className="bg-slate-50 rounded-xl p-4 mb-4 border border-slate-100">
-             <p className="font-bold text-slate-800 line-clamp-1">{user?.clinic_name || "MediClinic"}</p>
-             <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+        <div className="p-4 border-t border-white/5 mt-auto">
+          <div className="bg-white/5 rounded-2xl p-4 mb-4 border border-white/5">
+             <p className="font-bold text-white line-clamp-1">{user?.clinic_name || "MediClinic"}</p>
+             <p className="text-[10px] text-slate-400 truncate mt-0.5">{user?.email}</p>
           </div>
           <button
             onClick={logout}
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+            className="flex items-center justify-center gap-3 w-full py-3.5 rounded-2xl font-black text-sm text-red-400 bg-red-400/5 hover:bg-red-400/10 border border-red-400/20 transition-all group"
           >
-            <LogOut size={16} /> Logout
+            <LogOut size={16} className="group-hover:-translate-x-1 transition-transform" /> Logout
           </button>
         </div>
       </aside>

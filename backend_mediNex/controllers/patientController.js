@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Patient from "../models/patientModel.js";
 import Doctor from "../models/doctorModel.js";
+import Broker from "../models/brokerModel.js";
 import Booking from "../models/bookingModel.js";
 import PatientMessage from "../models/patientMessageModel.js";
 
@@ -171,6 +172,37 @@ export const getPatientProfile = async (req, res) => {
   }
 };
 
+// ── Update Patient Location ──────────────────────────────────────
+export const updatePatientLocation = async (req, res) => {
+  try {
+    const { lat, lng } = req.body;
+    const patientId = req.user.id;
+
+    if (lat === undefined || lng === undefined) {
+      return res.status(400).json({ success: false, message: "lat and lng are required" });
+    }
+
+    const patient = await Patient.findById(patientId);
+    if (!patient) return res.status(404).json({ success: false, message: "Patient not found" });
+
+    patient.location = {
+      type: "Point",
+      coordinates: [lng, lat]
+    };
+
+    await patient.save();
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Location updated successfully", 
+      location: patient.location 
+    });
+  } catch (error) {
+    console.error("Update Location Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
 // ═══════════════════════════════════════════════════════════════════
 //  PHASE 3: SEARCH & FILTER DOCTORS
 // ═══════════════════════════════════════════════════════════════════
@@ -185,7 +217,7 @@ export const getDoctorDetails = async (req, res) => {
 
     const doctor = await Doctor.findById(id).populate({
       path: "brokerId",
-      select: "name clinic_name clinic_address clinic_location phone",
+      select: "name clinic_name clinic_address clinic_location location phone",
     });
 
     if (!doctor || !doctor.is_verified) {
@@ -256,7 +288,7 @@ export const searchDoctors = async (req, res) => {
     const doctors = await Doctor.find(filter)
       .populate({
         path: "brokerId",
-        select: "name clinic_name clinic_address clinic_location phone",
+        select: "name clinic_name clinic_address clinic_location location phone",
       })
       .select("-__v")
       .sort({ createdAt: -1 })
@@ -520,33 +552,172 @@ export const getMyBookings = async (req, res) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════
+//  PHASE 10: EMERGENCY BOOKING
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Find Nearby Doctors (within radius) ──────────────────────────
+// Route: GET /api/patient/emergency/nearby?lat=X&lng=Y&radius=5
+export const getNearbyDoctors = async (req, res) => {
+  try {
+    const { lat, lng, radius } = req.query;
+
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, message: "Latitude and longitude are required." });
+    }
+
+    const radiusKm = parseFloat(radius) || 5;
+    const radiusInMeters = radiusKm * 1000;
+
+    // Find brokers within the radius using MongoDB $geoNear / $near
+    const nearbyBrokers = await Broker.find({
+      is_approved: true,
+      "clinic_location.coordinates": { $ne: [0, 0] },
+      clinic_location: {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [parseFloat(lng), parseFloat(lat)], // GeoJSON: [lng, lat]
+          },
+          $maxDistance: radiusInMeters,
+        },
+      },
+    }).select("_id clinic_name clinic_address location");
+
+    if (nearbyBrokers.length === 0) {
+      return res.status(200).json({
+        success: true,
+        doctors: [],
+        message: `No clinics found within ${radiusKm}km of your location.`,
+      });
+    }
+
+    const brokerIds = nearbyBrokers.map((b) => b._id);
+
+    const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const todayName = days[new Date().getDay()];
+
+    // Find verified doctors belonging to nearby clinics who are scheduled for today
+    const doctors = await Doctor.find({
+      brokerId: { $in: brokerIds },
+      is_verified: true,
+      "schedule.day": todayName
+    })
+      .populate({
+        path: "brokerId",
+        select: "clinic_name clinic_address location",
+      })
+      .select("name specialization avatar fees experience degree schedule");
+
+    res.status(200).json({
+      success: true,
+      count: doctors.length,
+      radiusKm,
+      doctors,
+    });
+  } catch (error) {
+    console.error("Get Nearby Doctors Error:", error.message);
+    res.status(500).json({ success: false, message: "Server error while finding nearby doctors." });
+  }
+};
+
+// ── Create Emergency Booking ─────────────────────────────────────
+// Route: POST /api/patient/emergency/book
+export const createEmergencyBooking = async (req, res) => {
+  try {
+    const patientId = req.user.id;
+    const { doctorId, emergency_reason } = req.body;
+
+    if (!doctorId || !emergency_reason) {
+      return res.status(400).json({
+        success: false,
+        message: "Doctor ID and emergency reason are required.",
+      });
+    }
+
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor || !doctor.is_verified) {
+      return res.status(404).json({ success: false, message: "Doctor not found or not verified." });
+    }
+
+    // Today's date at midnight
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // Get the next queue token for this doctor today
+    const lastBooking = await Booking.findOne({
+      doctorId,
+      date: { $gte: today, $lte: todayEnd },
+    }).sort({ queue_token_number: -1 });
+
+    const nextToken = lastBooking ? lastBooking.queue_token_number + 1 : 1;
+
+    const booking = await Booking.create({
+      patientId,
+      doctorId,
+      brokerId: doctor.brokerId,
+      booking_mode: "Offline",
+      date: new Date(),
+      time_slot: "EMERGENCY",
+      queue_token_number: nextToken,
+      is_emergency: true,
+      emergency_reason,
+      notes: `🚨 EMERGENCY: ${emergency_reason}`,
+    });
+
+    // Emit socket notification to broker
+    const io = req.app.get("io");
+    if (io) {
+      io.to(`broker_${doctor.brokerId}`).emit("newBooking", {
+        message: `🚨 Emergency booking from a patient!`,
+        booking,
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Emergency booking created! The clinic has been notified.",
+      booking,
+    });
+  } catch (error) {
+    console.error("Emergency Booking Error:", error.message);
+    res.status(500).json({ success: false, message: "Server error while creating emergency booking." });
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════════
 //  PHASE 8: PATIENT HEALTH VAULT & REVIEWS
 // ═══════════════════════════════════════════════════════════════════
 
-// ── Upload Health Record ──────────────────────────────────────────
+// ── Upload Health Record (supports multiple files) ───────────────
 export const uploadHealthRecord = async (req, res) => {
   try {
     const patientId = req.user.id;
     const { title } = req.body;
     
-    if (!req.file) {
+    if (!req.files || req.files.length === 0) {
       return res.status(400).json({ success: false, message: "No file provided." });
     }
     if (!title) {
       return res.status(400).json({ success: false, message: "Record title is required." });
     }
 
-    const file_url = req.file.path; // Cloudinary URL
-
     const patient = await Patient.findById(patientId);
     if (!patient) return res.status(404).json({ success: false, message: "Patient not found." });
 
-    patient.health_records.push({ title, file_url });
+    const newRecords = req.files.map((file, idx) => {
+      const file_url = `${req.protocol}://${req.get("host")}/uploads/${file.filename}`;
+      const recordTitle = req.files.length > 1 ? `${title} (Page ${idx + 1})` : title;
+      return { title: recordTitle, file_url };
+    });
+
+    patient.health_records.push(...newRecords);
     await patient.save();
 
     res.status(200).json({
       success: true,
-      message: "Health record uploaded successfully.",
+      message: `${newRecords.length} record(s) uploaded successfully.`,
       health_records: patient.health_records,
     });
   } catch (error) {
@@ -574,6 +745,37 @@ export const getHealthVault = async (req, res) => {
   } catch (error) {
     console.error("Get Health Vault Error:", error.message);
     res.status(500).json({ success: false, message: "Server error while fetching health records." });
+  }
+};
+
+// ── Delete Health Record ─────────────────────────────────────────
+export const deleteHealthRecord = async (req, res) => {
+  try {
+    const patientId = req.user.id;
+    const { recordId } = req.params;
+
+    const patient = await Patient.findById(patientId);
+    if (!patient) return res.status(404).json({ success: false, message: "Patient not found." });
+
+    const recordIndex = patient.health_records.findIndex(
+      (r) => r._id.toString() === recordId
+    );
+
+    if (recordIndex === -1) {
+      return res.status(404).json({ success: false, message: "Record not found." });
+    }
+
+    patient.health_records.splice(recordIndex, 1);
+    await patient.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Health record removed successfully.",
+      health_records: patient.health_records,
+    });
+  } catch (error) {
+    console.error("Delete Health Record Error:", error.message);
+    res.status(500).json({ success: false, message: "Server error while deleting record." });
   }
 };
 

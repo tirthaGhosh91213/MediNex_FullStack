@@ -8,6 +8,8 @@ import {
   updateBrokerLocation,
   getBrokerNotifications,
   clearBrokerNotifications,
+  deleteDoctor,
+  updateDoctorSlots,
 } from "../controllers/brokerController.js";
 import {
   getBrokerBookings,
@@ -61,6 +63,8 @@ brokerRouter.post("/doctors/add", verifyToken, isBroker, upload.fields([
   { name: 'registration_certificate', maxCount: 1 },
 ]), addDoctor);
 brokerRouter.get("/doctors", verifyToken, isBroker, getBrokerDoctors);
+brokerRouter.delete("/doctors/:doctorId", verifyToken, isBroker, deleteDoctor);
+brokerRouter.put("/doctors/:doctorId/slots", verifyToken, isBroker, updateDoctorSlots);
 
 // ── Phase 4: Booking Management ─────────────────────────────────
 brokerRouter.get("/bookings", verifyToken, isBroker, getBrokerBookings);

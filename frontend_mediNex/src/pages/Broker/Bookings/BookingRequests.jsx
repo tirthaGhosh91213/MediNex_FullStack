@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { Check, X, FileText, Video, Home } from "lucide-react";
+import PatientVaultModal from "./PatientVaultModal";
 
 const BookingRequests = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [vaultPatientId, setVaultPatientId] = useState(null);
 
   useEffect(() => {
     fetchBookings();
@@ -94,7 +96,10 @@ const BookingRequests = () => {
                         {b.status}
                       </span>
                     )}
-                    <button className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl transition shadow-sm text-sm">
+                    <button 
+                      onClick={() => setVaultPatientId(b.patientId?._id || b.patientId)}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-4 rounded-xl transition shadow-sm text-sm"
+                    >
                       <FileText size={16} className="inline mr-1" /> Vault
                     </button>
                   </td>
@@ -110,6 +115,14 @@ const BookingRequests = () => {
           </table>
         </div>
       </div>
+
+      {/* Patient Vault Modal Overlay */}
+      {vaultPatientId && (
+        <PatientVaultModal 
+          patientId={vaultPatientId} 
+          onClose={() => setVaultPatientId(null)} 
+        />
+      )}
     </div>
   );
 };

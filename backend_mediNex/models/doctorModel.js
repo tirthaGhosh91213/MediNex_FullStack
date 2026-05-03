@@ -54,8 +54,12 @@ const doctorSchema = new mongoose.Schema(
       trim: true,
     },
     experience: {
-      type: Number, // years of experience
+      type: Number, // years of experience (legacy/input value)
       default: 0,
+    },
+    experience_started_year: {
+      type: Number, // Auto-calculated based on experience input when added
+      default: null,
     },
     fees: {
       type: Number,

@@ -85,11 +85,11 @@ const DoctorDetails = () => {
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden relative">
         <div className="h-32 bg-gradient-to-r from-blue-900 to-blue-700 w-full"></div>
         <div className="px-8 pb-8">
-          <div className="flex flex-col md:flex-row gap-8 items-start md:items-end -mt-16 relative">
+          <div className="flex flex-col md:flex-row gap-6 items-start">
             
             {/* Avatar */}
             <div 
-              className="w-40 h-40 rounded-2xl bg-white p-1.5 border border-gray-200 shadow-md shrink-0 relative cursor-pointer group"
+              className="-mt-16 w-36 h-36 rounded-2xl bg-white p-1.5 border border-gray-200 shadow-md shrink-0 relative cursor-pointer group z-10"
               onClick={() => setIsImageModalOpen(true)}
             >
               <img 
@@ -103,18 +103,18 @@ const DoctorDetails = () => {
             </div>
 
             {/* Core Info */}
-            <div className="flex-1 pb-2">
-              <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div className="flex-1 pt-3 w-full">
+              <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
                 <div>
                   <div className="flex items-center gap-3 mb-1">
                     <h1 className="text-3xl font-bold text-gray-900">{doctor.name}</h1>
-                    <ShieldCheck className="text-blue-500" size={24} />
+                    <ShieldCheck className="text-blue-500 mt-1" size={24} />
                   </div>
                   <p className="text-lg text-blue-600 font-medium">{doctor.specialization}</p>
                 </div>
                 
                 {/* Action Button Desktop */}
-                <div className="hidden md:block">
+                <div className="hidden md:block shrink-0">
                   <button 
                     onClick={() => setIsModalOpen(true)}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-2"
@@ -137,7 +137,11 @@ const DoctorDetails = () => {
                 </div>
                 <div className="flex items-center gap-2 text-gray-700 bg-yellow-50 border border-yellow-200 px-3 py-1.5 rounded-lg">
                   <Star size={18} className="text-yellow-500" fill="currentColor" />
-                  <span className="font-bold text-sm text-yellow-700">{averageRating > 0 ? averageRating.toFixed(1) : "New"}</span>
+                  <span className="font-bold text-sm text-yellow-700">
+                    {averageRating > 0 ? averageRating.toFixed(1) : 
+                      (doctor.createdAt && Math.ceil(Math.abs(new Date() - new Date(doctor.createdAt)) / (1000 * 60 * 60 * 24)) <= 7) ? "New" : "No Reviews"
+                    }
+                  </span>
                 </div>
               </div>
             </div>
@@ -171,7 +175,7 @@ const DoctorDetails = () => {
                 <p className="font-bold text-gray-900 text-lg">{broker.clinic_name || "Private Practice"}</p>
                 <div className="flex items-start gap-2 mt-3 text-gray-600">
                   <MapPin size={16} className="text-gray-400 mt-0.5 shrink-0" />
-                  <span className="text-sm leading-relaxed">{broker.location?.address || "Address not provided"}</span>
+                  <span className="text-sm leading-relaxed">{broker.clinic_address || broker.location?.address || "Address not provided"}</span>
                 </div>
               </div>
 

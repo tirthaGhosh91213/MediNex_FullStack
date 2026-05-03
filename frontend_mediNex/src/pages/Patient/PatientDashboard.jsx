@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Search, Filter, Loader2, Sparkles, UserSearch, MapPin, Activity, CalendarDays, Clock, Users } from "lucide-react";
+import { Search, Filter, Loader2, Sparkles, UserSearch, MapPin, Activity, CalendarDays, Clock, Users, Siren } from "lucide-react";
 import DoctorCard from "./DoctorCard";
-import { motion } from "framer-motion";
+import EmergencyBooking from "./EmergencyBooking";
+import { motion, AnimatePresence } from "framer-motion";
 import { io } from "socket.io-client";
 import { toast } from "react-hot-toast";
 
@@ -15,6 +16,7 @@ const PatientDashboard = () => {
   // Live Queue State
   const [activeBookings, setActiveBookings] = useState([]);
   const [liveQueues, setLiveQueues] = useState({}); // Keyed by doctorId
+  const [showEmergency, setShowEmergency] = useState(false);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState("");
@@ -256,10 +258,13 @@ const PatientDashboard = () => {
                  <p className="text-2xl font-bold text-white">500+</p>
                  <p className="text-xs font-medium text-blue-200 mt-1 uppercase tracking-wide">Specialists</p>
               </div>
-              <div className="text-center bg-blue-600 p-5 rounded-lg min-w-[130px] border border-blue-500 shadow-sm">
-                 <p className="text-2xl font-bold text-white">24/7</p>
-                 <p className="text-xs font-medium text-blue-100 mt-1 uppercase tracking-wide">Care Available</p>
-              </div>
+              <button 
+                 onClick={() => setShowEmergency(true)}
+                 className="text-center bg-red-600 hover:bg-red-700 p-5 rounded-lg min-w-[130px] border border-red-500 shadow-lg shadow-red-900/30 transition-all active:scale-95 cursor-pointer group"
+               >
+                  <Siren size={24} className="mx-auto mb-1 text-white group-hover:animate-pulse" />
+                  <p className="text-xs font-bold text-red-100 mt-1 uppercase tracking-wide">Emergency</p>
+               </button>
            </motion.div>
         </div>
       </motion.div>
@@ -343,6 +348,19 @@ const PatientDashboard = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Mobile Emergency FAB */}
+      <button
+        onClick={() => setShowEmergency(true)}
+        className="lg:hidden fixed bottom-6 right-6 z-50 w-16 h-16 bg-red-600 hover:bg-red-700 text-white rounded-full shadow-2xl shadow-red-600/30 flex items-center justify-center active:scale-90 transition-all"
+      >
+        <Siren size={26} />
+      </button>
+
+      {/* Emergency Booking Modal */}
+      <AnimatePresence>
+        {showEmergency && <EmergencyBooking onClose={() => setShowEmergency(false)} />}
+      </AnimatePresence>
     </div>
   );
 };

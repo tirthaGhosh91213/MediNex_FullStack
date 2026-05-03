@@ -11,9 +11,18 @@ const DoctorCard = ({ doctor }) => {
   const broker = doctor.brokerId || {};
   const averageRating = doctor.average_rating || 0;
 
+  const isNew = () => {
+    if (!doctor.createdAt) return false;
+    const createdAt = new Date(doctor.createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now - createdAt);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7;
+  };
+
   const item = {
-    hidden: { opacity: 0, y: 15 },
-    show: { opacity: 1, y: 0 }
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
   };
 
   const handleCardClick = () => {
@@ -29,61 +38,66 @@ const DoctorCard = ({ doctor }) => {
     <>
       <motion.div 
         variants={item}
-        whileHover={{ y: -4, transition: { duration: 0.2 } }}
+        whileHover={{ y: -8, transition: { duration: 0.3, ease: "easeOut" } }}
         onClick={handleCardClick}
-        className="group bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg hover:border-blue-300 transition-all duration-300 overflow-hidden flex flex-col h-full cursor-pointer relative"
+        className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-blue-900/5 hover:border-blue-200 transition-all duration-300 overflow-hidden flex flex-col h-full cursor-pointer relative"
       >
-        {/* Subtle top gradient bar for formal look */}
-        <div className="h-1 w-full bg-gradient-to-r from-blue-700 to-blue-400 absolute top-0 left-0"></div>
-
-        {/* Header/Banner Area */}
-        <div className="h-28 bg-gradient-to-b from-gray-50 to-white relative border-b border-gray-100 flex items-end">
-           <div className="absolute top-4 right-4 flex items-center gap-1.5 bg-white border border-gray-200 px-2.5 py-1 rounded-full shadow-sm text-xs font-semibold text-gray-700">
-             <Star size={14} className="text-yellow-500" fill="currentColor" />
-             <span>{averageRating > 0 ? averageRating.toFixed(1) : "New"}</span>
-           </div>
-
-           <div className="absolute -bottom-10 left-6">
-              <div className="w-20 h-20 rounded-full bg-white p-1 border-2 border-white shadow-md relative group-hover:scale-105 transition-transform duration-300">
-                <img 
-                  src={doctor.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name)}&background=f3f4f6&color=374151`} 
-                  alt={doctor.name} 
-                  className="w-full h-full rounded-full object-cover"
-                />
-                <div className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
-              </div>
-           </div>
+        {/* Top pattern / gradient */}
+        <div className="h-32 w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-white relative overflow-hidden">
+          <div className="absolute inset-0 opacity-30 mix-blend-overlay" style={{ backgroundImage: "radial-gradient(#cbd5e1 1px, transparent 1px)", backgroundSize: "16px 16px" }}></div>
+          <div className="absolute top-4 right-4 z-10 flex items-center gap-1.5 bg-white/80 backdrop-blur-md border border-white/50 px-3 py-1.5 rounded-full shadow-sm text-xs font-bold text-gray-800">
+            <Star size={14} className="text-yellow-500" fill="currentColor" />
+            <span>{averageRating > 0 ? averageRating.toFixed(1) : isNew() ? "New" : "N/A"}</span>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="pt-14 p-6 flex-1 flex flex-col">
-          <div className="mb-4">
-            <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-700 transition-colors flex items-center justify-between">
+        <div className="p-6 pt-0 flex-1 flex flex-col relative bg-white">
+          {/* Avatar */}
+          <div className="relative -mt-14 mb-5 w-28 h-28 mx-auto">
+            <div className="w-full h-full rounded-2xl bg-white p-1 border border-gray-100 shadow-md group-hover:scale-105 group-hover:-translate-y-2 transition-all duration-300">
+              <img 
+                src={doctor.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(doctor.name)}&background=f3f4f6&color=374151`} 
+                alt={doctor.name} 
+                className="w-full h-full rounded-xl object-cover bg-gray-50"
+              />
+            </div>
+            <div className="absolute bottom-1.5 right-1.5 w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
+          </div>
+
+          <div className="text-center mb-6">
+            <h3 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
               {doctor.name}
-              <ChevronRight size={18} className="text-gray-300 group-hover:text-blue-600 transition-colors opacity-0 group-hover:opacity-100" />
             </h3>
-            <p className="text-sm font-medium text-blue-600 mt-1 uppercase tracking-wide">{doctor.specialization}</p>
+            <p className="text-[11px] font-bold text-blue-600 mt-2 uppercase tracking-widest bg-blue-50/80 px-3 py-1 rounded-full inline-block border border-blue-100/50">
+              {doctor.specialization}
+            </p>
           </div>
           
-          <div className="space-y-3 mb-6 flex-1 border-t border-gray-50 pt-4">
+          <div className="space-y-4 mb-6 flex-1 bg-gray-50/50 p-4 rounded-xl border border-gray-50 group-hover:bg-blue-50/30 transition-colors duration-300">
             <div className="flex items-start gap-3 text-gray-600">
-              <Building2 size={16} className="text-gray-400 shrink-0 mt-0.5" />
+              <div className="bg-white p-1.5 rounded-md shadow-sm border border-gray-100 text-gray-400 mt-0.5 group-hover:text-blue-500 transition-colors">
+                <Building2 size={14} />
+              </div>
               <div className="flex flex-col">
-                <span className="text-sm font-medium text-gray-800">{broker.clinic_name || "Private Practice"}</span>
-                <span className="text-xs text-gray-500">{broker.location?.address || "Location unavailable"}</span>
+                <span className="text-sm font-bold text-gray-800">{broker.clinic_name || "Private Practice"}</span>
+                <span className="text-xs text-gray-500 line-clamp-1 mt-0.5">{broker.clinic_address || broker.location?.address || "Location unavailable"}</span>
               </div>
             </div>
             <div className="flex items-center gap-3 text-gray-600">
-              <Banknote size={16} className="text-gray-400 shrink-0" />
-              <span className="text-sm font-semibold text-gray-900">₹{doctor.fees} <span className="text-xs text-gray-500 font-medium uppercase">/ Session</span></span>
+              <div className="bg-white p-1.5 rounded-md shadow-sm border border-gray-100 text-gray-400 group-hover:text-blue-500 transition-colors">
+                <Banknote size={14} />
+              </div>
+              <span className="text-sm font-bold text-gray-900">₹{doctor.fees} <span className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">/ Session</span></span>
             </div>
           </div>
 
           <button 
             onClick={handleBookClick}
-            className="w-full py-2.5 rounded-lg bg-blue-50 text-blue-700 font-semibold text-sm hover:bg-blue-600 hover:text-white border border-blue-100 hover:border-blue-600 transition-all duration-300 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-blue-600 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 flex items-center justify-center gap-2 group/btn relative overflow-hidden"
           >
-            <CalendarPlus size={16} />
+            <span className="absolute inset-0 w-full h-full bg-white/20 -translate-x-full group-hover/btn:translate-x-full transition-transform duration-500 ease-out"></span>
+            <CalendarPlus size={16} className="group-hover/btn:rotate-12 transition-transform duration-300" />
             Book Appointment
           </button>
         </div>

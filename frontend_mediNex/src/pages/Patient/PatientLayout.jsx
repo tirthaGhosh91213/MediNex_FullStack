@@ -4,11 +4,12 @@ import { useAuth } from "../../context/AuthContext";
 import { 
   LayoutDashboard, CalendarDays, Archive, 
   LogOut, User, Menu, X, Bell, 
-  ShieldCheck, HeartPulse
+  ShieldCheck, HeartPulse, Bot
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { io } from "socket.io-client";
 import axios from "axios";
+import AlarmSystem from "../../components/AlarmSystem";
 
 const PatientLayout = () => {
   const { user, token, logout } = useAuth();
@@ -83,6 +84,7 @@ const PatientLayout = () => {
     { name: "Dashboard", path: "/patient/dashboard", icon: <LayoutDashboard size={20} /> },
     { name: "My Bookings", path: "/patient/my-bookings", icon: <CalendarDays size={20} /> },
     { name: "Health Vault", path: "/patient/vault", icon: <Archive size={20} /> },
+    { name: "AI Assistant", path: "/patient/ai-assistant", icon: <Bot size={20} /> },
   ];
 
   const SidebarContent = () => (
@@ -156,6 +158,7 @@ const PatientLayout = () => {
 
   return (
     <div className="flex h-screen bg-[#F8FAFC] min-h-0 overflow-hidden font-sans">
+      <AlarmSystem />
       
       {/* Desktop Sidebar */}
       <aside className="w-80 bg-[#0F172A] hidden md:flex shrink-0 shadow-[20px_0_60px_-15px_rgba(0,0,0,0.1)] z-20">
@@ -294,7 +297,7 @@ const PatientLayout = () => {
         </header>
 
         {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto p-8 sm:p-12 lg:p-16 custom-scrollbar relative z-0">
+        <main className="flex-1 overflow-y-auto p-8 sm:p-12 lg:p-16 custom-scrollbar">
            <Outlet />
         </main>
       </div>

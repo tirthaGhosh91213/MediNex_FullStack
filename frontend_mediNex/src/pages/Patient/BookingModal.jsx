@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import { 
   X, Calendar, Clock, Video, Home, 
-  Loader2, Award, GraduationCap, Users2, Info, CheckCircle
+  Loader2, Award, GraduationCap, Users2, Info, CheckCircle, MapPin, Car, Bike, Footprints, Navigation
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
@@ -22,7 +22,7 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
   const [paymentData, setPaymentData] = useState({ method: 'UPI', upiId: '' });
   const [lastBooking, setLastBooking] = useState(null);
 
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigate = useNavigate();
   const backendUrl = "http://localhost:4000";
 
@@ -62,6 +62,127 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
     };
     fetchTokenCount();
   }, [date, doctor._id, token]);
+
+  // Calculate distance and route details
+  const clinicLat = doctor?.brokerId?.clinic_location?.coordinates?.[1] || doctor?.brokerId?.location?.lat || 0;
+  const clinicLng = doctor?.brokerId?.clinic_location?.coordinates?.[0] || doctor?.brokerId?.location?.lng || 0;
+
+  const [currentPos, setCurrentPos] = useState({
+    lat: user?.location?.coordinates?.[1] || 0,
+    lng: user?.location?.coordinates?.[0] || 0
+  });
+
+  const [isLocating, setIsLocating] = useState(false);
+
+  useEffect(() => {
+    if (user?.location?.coordinates) {
+      setCurrentPos({
+        lat: user.location.coordinates[1] || 0,
+        lng: user.location.coordinates[0] || 0
+      });
+    }
+  }, [user]);
+
+  const handleGetCurrentLocation = () => {
+    if ("geolocation" in navigator) {
+      setIsLocating(true);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          setCurrentPos({ lat, lng });
+          
+          try {
+            // Save location to backend so it persists for next time
+            await axios.put(`${backendUrl}/api/patient/location`, { lat, lng }, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (clinicLat === 0 || clinicLng === 0) {
+              toast.error("Your location is saved, but Clinic GPS coordinates are missing!");
+            } else {
+              toast.success("Location updated and saved successfully!");
+            }
+          } catch (err) {
+            console.error("Failed to save location", err);
+            toast.success("Location updated locally!");
+          } finally {
+            setIsLocating(false);
+          }
+        },
+        (error) => {
+          console.error(error);
+          toast.error("Failed to get current location. Please check browser permissions.");
+          setIsLocating(false);
+        }
+      );
+    } else {
+      toast.error("Geolocation is not supported by your browser");
+    }
+  };
+
+  const [routeDetails, setRouteDetails] = useState({
+    distanceKm: null,
+    carTime: null,
+    bikeTime: null,
+    walkTime: null,
+    isLoaded: false
+  });
+
+  useEffect(() => {
+    const fetchRoute = async () => {
+      const { lat: uLat, lng: uLng } = currentPos;
+      if (uLat === 0 || clinicLat === 0) return;
+      
+      // Fallback Haversine Calculation
+      const getHaversineDist = () => {
+        const R = 6371; // km
+        const dLat = (clinicLat - uLat) * (Math.PI / 180);
+        const dLon = (clinicLng - uLng) * (Math.PI / 180);
+        const a = 
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(uLat * (Math.PI / 180)) * Math.cos(clinicLat * (Math.PI / 180)) * 
+          Math.sin(dLon / 2) * Math.sin(dLon / 2); 
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+        return R * c;
+      };
+
+      try {
+        // Fetch real road route from OSRM demo server (using fetch to avoid axios interceptor auth headers)
+        const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${uLng},${uLat};${clinicLng},${clinicLat}?overview=false`);
+        const data = await res.json();
+        
+        if (data.routes && data.routes.length > 0) {
+          const route = data.routes[0];
+          const distKm = (route.distance / 1000).toFixed(1);
+          const carMins = Math.ceil(route.duration / 60);
+          const bikeMins = Math.ceil((route.distance / 1000) / 20 * 60); // Assuming 20km/h for bike
+          const walkMins = Math.ceil((route.distance / 1000) / 5 * 60); // Assuming 5km/h for walk
+          
+          setRouteDetails({
+            distanceKm: distKm,
+            carTime: carMins,
+            bikeTime: bikeMins,
+            walkTime: walkMins,
+            isLoaded: true
+          });
+        } else {
+          throw new Error("No route found");
+        }
+      } catch (err) {
+        console.error("OSRM Fetch Error, using fallback:", err);
+        const d = getHaversineDist();
+        setRouteDetails({
+          distanceKm: d.toFixed(1),
+          carTime: Math.ceil(d / 30 * 60),
+          bikeTime: Math.ceil(d / 20 * 60),
+          walkTime: Math.ceil(d / 5 * 60),
+          isLoaded: true
+        });
+      }
+    };
+    fetchRoute();
+  }, [currentPos.lat, currentPos.lng, clinicLat, clinicLng]);
 
   // Helper to get available slots from doctor's schedule
   const getDaySchedule = () => {
@@ -147,7 +268,7 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
   return (
     <AnimatePresence>
       <div 
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm"
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm"
         onClick={(e) => { if (e.target === e.currentTarget) onClose(e); }}
       >
         <motion.div 
@@ -168,7 +289,7 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
                 <button 
                   type="button"
                   onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(e); }} 
-                  className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 p-2 rounded-md hover:bg-gray-200 transition-colors z-[1000] cursor-pointer"
+                  className="absolute top-4 right-4 text-gray-500 hover:text-gray-900 hover:bg-gray-200 p-2 rounded-full transition-colors z-[10000] cursor-pointer"
                 >
                   <X size={20} className="pointer-events-none" />
                 </button>
@@ -249,6 +370,73 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
                                <p className="text-sm font-medium text-blue-900 mt-1">{availableDays}</p>
                              </div>
                            </div>
+                        </div>
+                      </div>
+
+                      {/* Clinic Location Map */}
+                      <div className="w-full">
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-2">
+                            <MapPin size={14} className="text-gray-400"/> Route Map & Distance
+                          </label>
+                          <button
+                            type="button"
+                            onClick={handleGetCurrentLocation}
+                            disabled={isLocating}
+                            className="text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1 border border-blue-200 disabled:opacity-50"
+                          >
+                            {isLocating ? <Loader2 size={12} className="animate-spin" /> : <Navigation size={12} />}
+                            {isLocating ? "LOCATING..." : "USE CURRENT LOCATION"}
+                          </button>
+                        </div>
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                          <iframe 
+                            width="100%" 
+                            height="220" 
+                            frameBorder="0" 
+                            scrolling="no" 
+                            marginHeight="0" 
+                            marginWidth="0" 
+                            src={(currentPos.lat !== 0 && clinicLat !== 0) ? `https://maps.google.com/maps?saddr=${currentPos.lat},${currentPos.lng}&daddr=${clinicLat},${clinicLng}&output=embed` : `https://maps.google.com/maps?q=${encodeURIComponent(doctor?.brokerId?.clinic_address || doctor?.brokerId?.clinic_name || '')}&output=embed`}
+                          ></iframe>
+                          <div className="p-4 bg-white border-t border-gray-200">
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="text-sm font-medium text-gray-800 pr-4">
+                                {doctor?.brokerId?.clinic_address || "Address not available"}
+                              </div>
+                              {routeDetails.isLoaded && (
+                                <div className="text-sm font-bold text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-md shrink-0 shadow-sm">
+                                  {routeDetails.distanceKm} km
+                                </div>
+                              )}
+                            </div>
+                            
+                            {routeDetails.isLoaded ? (
+                              <div className="flex items-center justify-between gap-2 text-xs font-medium text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <div className="flex flex-col items-center gap-1 w-1/3">
+                                  <Car size={16} className="text-blue-500"/>
+                                  <span>{routeDetails.carTime} min</span>
+                                </div>
+                                <div className="h-6 w-px bg-gray-300"></div>
+                                <div className="flex flex-col items-center gap-1 w-1/3">
+                                  <Bike size={16} className="text-green-500"/>
+                                  <span>{routeDetails.bikeTime} min</span>
+                                </div>
+                                <div className="h-6 w-px bg-gray-300"></div>
+                                <div className="flex flex-col items-center gap-1 w-1/3">
+                                  <Footprints size={16} className="text-orange-500"/>
+                                  <span>{routeDetails.walkTime} min</span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-xs text-gray-500 italic bg-gray-50 p-2 rounded flex flex-col items-center justify-center text-center py-3">
+                                <MapPin size={16} className="text-gray-400 mb-1" />
+                                {clinicLat === 0 
+                                  ? "Clinic GPS location is not set by the broker. Route details cannot be calculated." 
+                                  : "Click 'Use Current Location' above to see route details and travel times."}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 

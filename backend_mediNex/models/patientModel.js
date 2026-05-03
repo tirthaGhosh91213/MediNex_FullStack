@@ -71,6 +71,15 @@ const patientSchema = new mongoose.Schema(
         uploaded_at: { type: Date, default: Date.now },
       },
     ],
+    // Phase 14: AI Prescription Analyzer Alarms
+    medication_alarms: [
+      {
+        medicineName: { type: String, required: true },
+        durationDays: { type: Number, required: true },
+        times: [{ type: String, required: true }], // e.g., "08:00", "14:00"
+        addedAt: { type: Date, default: Date.now }
+      }
+    ]
   },
   {
     timestamps: true,

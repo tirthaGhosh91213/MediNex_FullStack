@@ -317,6 +317,7 @@ export const addDoctor = async (req, res) => {
       degree: degree || "MBBS",
       medical_reg_number,
       experience: experience || 0,
+      experience_started_year: new Date().getFullYear() - (parseInt(experience) || 0),
       fees,
       bio: bio || "",
       avatar: buildFileUrl(avatarFile),
@@ -381,6 +382,50 @@ export const getBrokerDoctors = async (req, res) => {
       success: false,
       message: "Server error while fetching doctors.",
     });
+  }
+};
+
+// ── Delete Doctor ───────────────────────────────────────────────
+export const deleteDoctor = async (req, res) => {
+  try {
+    const brokerId = req.user.id;
+    const { doctorId } = req.params;
+
+    const doctor = await Doctor.findOne({ _id: doctorId, brokerId });
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: "Doctor not found or unauthorized." });
+    }
+
+    await Doctor.findByIdAndDelete(doctorId);
+
+    res.status(200).json({ success: true, message: "Doctor deleted successfully." });
+  } catch (error) {
+    console.error("Delete Doctor Error:", error.message);
+    res.status(500).json({ success: false, message: "Server error while deleting doctor." });
+  }
+};
+
+// ── Update Doctor Slots ─────────────────────────────────────────
+export const updateDoctorSlots = async (req, res) => {
+  try {
+    const brokerId = req.user.id;
+    const { doctorId } = req.params;
+    const { schedule, max_patients_per_day } = req.body;
+
+    const doctor = await Doctor.findOne({ _id: doctorId, brokerId });
+    if (!doctor) {
+      return res.status(404).json({ success: false, message: "Doctor not found or unauthorized." });
+    }
+
+    if (schedule) doctor.schedule = schedule;
+    if (max_patients_per_day) doctor.max_patients_per_day = max_patients_per_day;
+
+    await doctor.save();
+
+    res.status(200).json({ success: true, message: "Doctor slots updated successfully.", doctor });
+  } catch (error) {
+    console.error("Update Doctor Slots Error:", error.message);
+    res.status(500).json({ success: false, message: "Server error while updating slots." });
   }
 };
 
@@ -482,7 +527,7 @@ export const getPatientRecords = async (req, res) => {
     const booking = await Booking.findOne({
       brokerId,
       patientId,
-      status: { $in: ["Accepted", "In-Progress", "Completed"] }, // Allow if they have "met" 
+      status: { $in: ["Pending", "Accepted", "In-Progress", "Completed"] }, // Allow if they have "met" or requested to meet
     });
 
     if (!booking) {

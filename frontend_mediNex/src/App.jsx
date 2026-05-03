@@ -16,6 +16,7 @@ import PatientDashboard from "./pages/Patient/PatientDashboard";
 import MyBookings from "./pages/Patient/MyBookings";
 import HealthVault from "./pages/Patient/HealthVault";
 import DoctorDetails from "./pages/Patient/DoctorDetails";
+import AIAssistant from "./pages/Patient/AIAssistant";
 
 // Broker Imports
 import BrokerLayout from "./pages/Broker/BrokerLayout";
@@ -60,6 +61,7 @@ function App() {
             <Route path="dashboard" element={<PatientDashboard />} />
             <Route path="my-bookings" element={<MyBookings />} />
             <Route path="vault" element={<HealthVault />} />
+            <Route path="ai-assistant" element={<AIAssistant />} />
             <Route path="doctor/:id" element={<DoctorDetails />} />
           </Route>
         </Route>

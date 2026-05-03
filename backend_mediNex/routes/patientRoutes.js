@@ -7,6 +7,7 @@ import {
   getDoctorDetails,
   createBooking,
   getMyBookings,
+  updatePatientLocation,
 } from "../controllers/patientController.js";
 import { verifyToken } from "../middleware/auth.js";
 
@@ -35,6 +36,7 @@ patientRouter.post("/login", loginPatient);
 
 // ── Protected routes (requires valid JWT) ───────────────────────
 patientRouter.get("/profile", verifyToken, getPatientProfile);
+patientRouter.put("/location", verifyToken, updatePatientLocation);
 
 // ── Phase 3: Doctor Search & Filter ─────────────────────────────
 patientRouter.get("/doctors", searchDoctors);
@@ -44,16 +46,27 @@ patientRouter.get("/doctors/:id", verifyToken, getDoctorDetails);
 patientRouter.post("/book", verifyToken, createBooking);
 patientRouter.get("/my-bookings", verifyToken, getMyBookings);
 
+// ── Phase 10: Emergency Booking ─────────────────────────────────
+import { getNearbyDoctors, createEmergencyBooking } from "../controllers/patientController.js";
+patientRouter.get("/emergency/nearby", verifyToken, getNearbyDoctors);
+patientRouter.post("/emergency/book", verifyToken, createEmergencyBooking);
+
 // ── Phase 8: Patient Health Vault & Reviews ───────────────────────
 import { upload } from "../config/cloudinary.js";
-import { uploadHealthRecord, getHealthVault, submitReview, getMyMessages, clearMessage } from "../controllers/patientController.js";
+import { uploadHealthRecord, getHealthVault, deleteHealthRecord, submitReview, getMyMessages, clearMessage } from "../controllers/patientController.js";
 
-patientRouter.post("/vault/upload", verifyToken, upload.single("health_record"), uploadHealthRecord);
+patientRouter.post("/vault/upload", verifyToken, upload.array("health_record", 10), uploadHealthRecord);
 patientRouter.get("/vault", verifyToken, getHealthVault);
+patientRouter.delete("/vault/:recordId", verifyToken, deleteHealthRecord);
 patientRouter.post("/review/:bookingId", verifyToken, submitReview);
 
 // ── Phase 9: Patient Messages ─────────────────────────────────────
 patientRouter.get("/messages", verifyToken, getMyMessages);
 patientRouter.delete("/messages/:id", verifyToken, clearMessage);
+
+// ── Phase 14: AI Assistant ────────────────────────────────────────
+import { checkSymptoms, analyzePrescription } from "../controllers/aiController.js";
+patientRouter.post("/ai/symptom-checker", verifyToken, checkSymptoms);
+patientRouter.post("/ai/analyze-prescription", verifyToken, upload.single("prescription"), analyzePrescription);
 
 export default patientRouter;

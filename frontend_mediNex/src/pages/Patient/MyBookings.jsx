@@ -48,8 +48,16 @@ const MyBookings = () => {
   };
 
   const openGoogleMaps = (broker) => {
-    if (broker && broker.location && broker.location.lat && broker.location.lng) {
-      const url = `https://www.google.com/maps/search/?api=1&query=${broker.location.lat},${broker.location.lng}`;
+    const lat = broker?.clinic_location?.coordinates?.[1] || broker?.location?.lat || 0;
+    const lng = broker?.clinic_location?.coordinates?.[0] || broker?.location?.lng || 0;
+
+    if (lat !== 0 && lng !== 0) {
+      const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+      window.open(url, "_blank");
+    } else if (broker?.clinic_address || broker?.clinic_name) {
+      // Fallback to searching by address or name if GPS coords are missing
+      const query = encodeURIComponent(broker?.clinic_address || broker?.clinic_name);
+      const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
       window.open(url, "_blank");
     } else {
       alert("Location coordinates unavailable for this clinic.");

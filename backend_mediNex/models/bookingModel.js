@@ -75,6 +75,16 @@ const bookingSchema = new mongoose.Schema(
       default: "",
     },
 
+    // ── Emergency Booking ───────────────────────────────────────
+    is_emergency: {
+      type: Boolean,
+      default: false,
+    },
+    emergency_reason: {
+      type: String,
+      default: "",
+    },
+
     // ── Phase 6: Online Consultation ────────────────────────────
     // Generated when broker accepts an Online booking (UUID-based room ID)
     // Both doctor and patient use this to join the same video room

@@ -112,6 +112,7 @@ const doctorSchema = new mongoose.Schema(
         patientId: { type: mongoose.Schema.Types.ObjectId, ref: "Patient" },
         score: { type: Number, required: true, min: 1, max: 5 },
         review: { type: String, default: "" },
+        date: { type: Date, default: Date.now },
       },
     ],
     average_rating: {

@@ -118,24 +118,22 @@ export const getDoctorSessionQueue = async (req, res) => {
     const endOfDay = new Date(today);
     endOfDay.setHours(23, 59, 59, 999);
 
+    const time_slot = roomId.substring(doctorId.length + 1); // everything after the "_"
+
     const bookings = await Booking.find({
       doctorId,
       booking_mode: "Online",
+      time_slot,
       date: { $gte: startOfDay, $lte: endOfDay },
       status: { $in: ["Pending", "Accepted", "In-Progress", "Completed"] }
     })
       .populate("patientId", "name avatar phone")
       .sort({ time_slot: 1, queue_token_number: 1 });
 
-    // Filter by the roomId which is likely part of the meeting_link
-    // Or just return all online patients for today, as the UI can group them.
-    // The doctor UI will just show the queue.
-    const sessionBookings = bookings.filter(b => b.meeting_link && b.meeting_link.includes(roomId));
-
     res.status(200).json({
       success: true,
       doctor: doctor.doctorId,
-      queue: sessionBookings
+      queue: bookings
     });
   } catch (error) {
     console.error("Get Doctor Session Queue Error:", error);

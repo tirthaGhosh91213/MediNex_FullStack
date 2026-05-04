@@ -1,23 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../context/AuthContext";
 import { 
   ArrowLeft, Star, Building2, MapPin, 
   GraduationCap, Award, Calendar, Clock, 
-  Banknote, ShieldCheck, CheckCircle2, User, X
+  Banknote, ShieldCheck, CheckCircle2, User, X, LogIn
 } from "lucide-react";
 import { motion } from "framer-motion";
-import BookingModal from "./BookingModal";
 
-const DoctorDetails = () => {
+const PublicDoctorDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, role } = useAuth();
   
   const [doctor, setDoctor] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
   const backendUrl = "http://localhost:4000";
@@ -25,9 +23,7 @@ const DoctorDetails = () => {
   useEffect(() => {
     const fetchDoctorDetails = async () => {
       try {
-        const { data } = await axios.get(`${backendUrl}/api/patient/doctors/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const { data } = await axios.get(`${backendUrl}/api/patient/doctors/${id}`);
         if (data.success) {
           setDoctor(data.doctor);
         }
@@ -38,10 +34,16 @@ const DoctorDetails = () => {
       }
     };
     
-    if (token && id) {
-      fetchDoctorDetails();
+    if (id) fetchDoctorDetails();
+  }, [id]);
+
+  const handleBookClick = () => {
+    if (token && role === "Patient") {
+      navigate(`/patient/doctor/${id}`);
+    } else {
+      navigate("/login", { state: { redirectTo: `/doctors/view/${id}` } });
     }
-  }, [id, token]);
+  };
 
   if (loading) {
     return (
@@ -55,8 +57,8 @@ const DoctorDetails = () => {
     return (
       <div className="text-center py-20">
         <h2 className="text-2xl font-bold text-gray-800">Doctor not found</h2>
-        <button onClick={() => navigate("/patient/dashboard")} className="mt-4 text-blue-600 hover:underline">
-          Return to Dashboard
+        <button onClick={() => navigate("/")} className="mt-4 text-blue-600 hover:underline">
+          Return to Home
         </button>
       </div>
     );
@@ -70,7 +72,7 @@ const DoctorDetails = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="max-w-6xl mx-auto space-y-8 pb-20"
+      className="max-w-6xl mx-auto space-y-8 pb-20 px-4 sm:px-6 lg:px-8 pt-8"
     >
       {/* Top Navigation */}
       <button 
@@ -78,7 +80,7 @@ const DoctorDetails = () => {
         className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors font-medium text-sm group"
       >
         <ArrowLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
-        Back to Results
+        Back to Doctors
       </button>
 
       {/* Main Profile Header */}
@@ -97,8 +99,6 @@ const DoctorDetails = () => {
                 alt={doctor.name}
                 className="w-full h-full object-cover rounded-xl group-hover:opacity-90 transition-opacity"
               />
-              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 rounded-2xl">
-              </div>
               <div className="absolute bottom-2 right-2 w-5 h-5 bg-green-500 border-4 border-white rounded-full"></div>
             </div>
 
@@ -116,11 +116,11 @@ const DoctorDetails = () => {
                 {/* Action Button Desktop */}
                 <div className="hidden md:block shrink-0">
                   <button 
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={handleBookClick}
                     className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all flex items-center gap-2"
                   >
-                    <Calendar size={18} />
-                    Book Appointment
+                    {token ? <Calendar size={18} /> : <LogIn size={18} />}
+                    {token ? "Book Appointment" : "Login to Book"}
                   </button>
                 </div>
               </div>
@@ -241,7 +241,14 @@ const DoctorDetails = () => {
                 doctor.schedule.map((slot, index) => (
                   <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50 border border-gray-100">
                     <span className="font-semibold text-gray-700 text-sm">{slot.day}</span>
-                    <span className="text-sm font-medium text-gray-500">{slot.from} - {slot.to}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-500">{slot.from} - {slot.to}</span>
+                      {slot.mode && (
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${slot.mode === 'Online' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'}`}>
+                          {slot.mode}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ))
               ) : (
@@ -255,27 +262,20 @@ const DoctorDetails = () => {
                 <p className="text-sm font-medium text-gray-700">Accepting new patients</p>
               </div>
               <button 
-                onClick={() => setIsModalOpen(true)}
+                onClick={handleBookClick}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3.5 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all flex items-center justify-center gap-2"
               >
-                <Calendar size={18} />
-                Book Consultation Now
+                {token ? <Calendar size={18} /> : <LogIn size={18} />}
+                {token ? "Book Consultation Now" : "Login to Book"}
               </button>
+              {!token && (
+                <p className="text-xs text-gray-400 text-center mt-3">You need to login or register to book an appointment.</p>
+              )}
             </div>
           </div>
 
         </div>
       </div>
-
-      {isModalOpen && (
-        <BookingModal 
-          doctor={doctor} 
-          onClose={(e) => {
-            if (e) e.stopPropagation();
-            setIsModalOpen(false);
-          }} 
-        />
-      )}
 
       {/* Full Screen Image Modal */}
       {isImageModalOpen && (
@@ -309,4 +309,4 @@ const DoctorDetails = () => {
   );
 };
 
-export default DoctorDetails;
+export default PublicDoctorDetails;

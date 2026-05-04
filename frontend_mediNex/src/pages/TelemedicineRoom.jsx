@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
-import { Video, Mic, MicOff, VideoOff, PhoneOff, User, Loader2, PlayCircle, ShieldCheck, MessageSquare, Maximize, Minimize, Send, X } from "lucide-react";
+import { Video, Mic, MicOff, VideoOff, PhoneOff, User, Loader2, PlayCircle, ShieldCheck, MessageSquare, Maximize, Minimize, Send, X, CameraOff } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 const TelemedicineRoom = () => {
@@ -23,6 +23,16 @@ const TelemedicineRoom = () => {
   const [remoteStream, setRemoteStream] = useState(null);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+
+  // Refs for stale closures in socket callbacks
+  const isCallingRef = useRef(isCalling);
+  const currentPatientRef = useRef(currentPatient);
+  const localStreamRef = useRef(localStream);
+
+  useEffect(() => { isCallingRef.current = isCalling; }, [isCalling]);
+  useEffect(() => { currentPatientRef.current = currentPatient; }, [currentPatient]);
+  useEffect(() => { localStreamRef.current = localStream; }, [localStream]);
 
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
@@ -33,8 +43,10 @@ const TelemedicineRoom = () => {
   // Chat & Fullscreen states
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
+  const isChatOpenRef = useRef(false);
 
   // STUN Servers for WebRTC
   const pcConfig = {
@@ -82,6 +94,7 @@ const TelemedicineRoom = () => {
         setQueue(activeQueue);
         if (activeQueue.length > 0 && activeQueue[0].is_session_started) {
           setCurrentPatient(activeQueue[0]);
+          setIsCalling(true);
         }
       }
     } catch (error) {
@@ -91,16 +104,37 @@ const TelemedicineRoom = () => {
     }
   };
 
+  // Auto-resume logic
+  useEffect(() => {
+    if (socket && isCalling && currentPatient?.is_session_started) {
+      socket.emit("doctor_ready", { roomId });
+    }
+  }, [socket, isCalling, currentPatient, roomId]);
+
   const setupMedia = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       setLocalStream(stream);
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      // We rely on the useEffect below to attach this to the video element
     } catch (error) {
       toast.error("Failed to access Camera/Microphone.");
       console.error(error);
+      setIsVideoEnabled(false);
+      setIsAudioEnabled(false);
     }
   };
+
+  useEffect(() => {
+    if (localStream && localVideoRef.current) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
+
+  useEffect(() => {
+    if (remoteStream && remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
 
   const setupSocket = () => {
     const newSocket = io("http://localhost:4000");
@@ -110,12 +144,18 @@ const TelemedicineRoom = () => {
       newSocket.emit("joinTelemedicineRoom", roomId);
     });
 
-    // Patient joined the room
-    newSocket.on("user-connected", async (userId) => {
-      if (currentPatient && isCalling) {
+    // Patient joined the room or is ready
+    const handlePatientReady = async (userId) => {
+      if (currentPatientRef.current && isCallingRef.current) {
         toast.success("Patient connected to room. Establishing video...");
         createOffer(newSocket, userId);
       }
+    };
+
+    newSocket.on("user-connected", handlePatientReady);
+    
+    newSocket.on("patient_ready", async (data) => {
+      handlePatientReady(data.senderId);
     });
 
     newSocket.on("webrtc_answer", async (data) => {
@@ -148,6 +188,14 @@ const TelemedicineRoom = () => {
 
     newSocket.on("chat_message", (msg) => {
       setMessages((prev) => [...prev, msg]);
+      // Show red dot if message is from patient and chat is closed
+      if (!msg.isDoctor && !isChatOpenRef.current) {
+        setHasUnreadMessages(true);
+      }
+    });
+
+    newSocket.on("queue_updated", () => {
+      fetchQueue();
     });
   };
 
@@ -157,9 +205,20 @@ const TelemedicineRoom = () => {
     const pc = new RTCPeerConnection(pcConfig);
     peerConnectionRef.current = pc;
 
-    if (localStream) {
-      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current));
+    } else {
+      pc.addTransceiver('video', { direction: 'recvonly' });
+      pc.addTransceiver('audio', { direction: 'recvonly' });
     }
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "connected") {
+        setIsConnected(true);
+      } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed" || pc.connectionState === "closed") {
+        setIsConnected(false);
+      }
+    };
 
     pc.ontrack = (event) => {
       setRemoteStream(event.streams[0]);
@@ -246,16 +305,29 @@ const TelemedicineRoom = () => {
     setCurrentPatient(patient);
     setIsCalling(true);
     
-    // In a real app we might update backend status here, but for now we wait for them to join.
+    if (socket) {
+      socket.emit("start_telemed_session", {
+        roomId,
+        patientId: patient.patientId?._id || patient.patientId,
+        bookingId: patient._id
+      });
+      socket.emit("doctor_ready", { roomId });
+    }
+    
     toast.success(`Waiting for ${patient.patientId?.name || "Patient"} to join...`);
   };
 
   const handleEndCall = () => {
     if (socket) {
-      socket.emit("end_telemed_call", { roomId });
+      socket.emit("end_telemed_call", { 
+        roomId,
+        patientId: currentPatient?.patientId?._id || currentPatient?.patientId,
+        bookingId: currentPatient?._id
+      });
     }
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
     setRemoteStream(null);
+    setIsConnected(false);
     if (peerConnectionRef.current) peerConnectionRef.current.close();
     peerConnectionRef.current = null;
     setIsCalling(false);
@@ -352,15 +424,22 @@ const TelemedicineRoom = () => {
         </div>
       </div>
 
-      {/* Main Video Area */}
-      <div className="flex-1 relative bg-black flex flex-col">
+      {/* Main Container for Video and Chat */}
+      <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
+        {/* Main Video Area */}
+        <div className="flex-1 relative bg-black flex flex-col min-h-0 overflow-hidden">
         
         {/* Remote Video (Patient) */}
-        <div className="flex-1 relative w-full h-full flex items-center justify-center overflow-hidden">
-          {(!remoteStream && isCalling) ? (
+        <div className="flex-1 relative w-full h-full flex items-center justify-center overflow-hidden min-h-0">
+          {(!remoteStream && isCalling && !isConnected) ? (
             <div className="text-center">
               <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
               <p className="text-slate-400 font-medium">Waiting for {currentPatient?.patientId?.name || 'patient'} to join...</p>
+            </div>
+          ) : (!remoteStream && isCalling && isConnected) ? (
+            <div className="text-center">
+              <User size={64} className="mx-auto text-slate-600 mb-4" />
+              <p className="text-slate-400 font-medium">Patient connected (No Camera/Audio)</p>
             </div>
           ) : (!remoteStream) ? (
              <div className="text-center text-slate-600">
@@ -379,20 +458,27 @@ const TelemedicineRoom = () => {
 
         {/* Local Video (Doctor) - Picture in Picture style */}
         <div className="absolute bottom-24 right-6 w-48 sm:w-64 aspect-video bg-slate-800 rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl z-10">
-          <video 
-            ref={localVideoRef} 
-            autoPlay 
-            playsInline 
-            muted 
-            className="w-full h-full object-cover transform scale-x-[-1]"
-          />
+          {!localStream ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 border border-slate-700">
+              <CameraOff size={24} className="text-slate-500 mb-1" />
+              <span className="text-[10px] text-slate-400 text-center px-2">Camera Off</span>
+            </div>
+          ) : (
+            <video 
+              ref={localVideoRef} 
+              autoPlay 
+              playsInline 
+              muted 
+              className="w-full h-full object-cover transform scale-x-[-1]"
+            />
+          )}
           <div className="absolute bottom-2 left-2 text-[10px] bg-black/60 px-2 py-1 rounded text-white font-medium backdrop-blur-sm">
             You
           </div>
         </div>
 
         {/* Controls Overlay */}
-        <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between px-8 pb-4">
+        <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between px-8 pb-4 z-20">
           <div className="w-1/3 flex justify-start items-center">
             {/* Left aligned items if any */}
           </div>
@@ -424,10 +510,18 @@ const TelemedicineRoom = () => {
 
           <div className="w-1/3 flex justify-end items-center gap-4">
              <button 
-               onClick={() => setIsChatOpen(!isChatOpen)} 
-               className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg border ${isChatOpen ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'}`}
+               onClick={() => {
+                 const newVal = !isChatOpen;
+                 setIsChatOpen(newVal);
+                 isChatOpenRef.current = newVal;
+                 if (newVal) setHasUnreadMessages(false);
+               }} 
+               className={`relative w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg border ${isChatOpen ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'}`}
              >
                <MessageSquare size={20} />
+               {hasUnreadMessages && (
+                 <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-900"></span>
+               )}
              </button>
              <button 
                onClick={toggleFullscreen} 
@@ -441,10 +535,10 @@ const TelemedicineRoom = () => {
 
       {/* Chat Panel */}
       {isChatOpen && (
-        <div className="w-80 bg-slate-900 flex flex-col shrink-0 z-30 h-full absolute right-0 top-0 bottom-0 shadow-2xl border-l border-slate-700">
+        <div className="w-80 bg-slate-900 flex flex-col shrink-0 z-30 h-full border-l border-slate-700 relative">
           <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-800/50">
             <h3 className="text-white font-bold flex items-center gap-2"><MessageSquare size={18} className="text-blue-500" /> In-Call Messages</h3>
-            <button onClick={() => setIsChatOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-700">
+            <button onClick={() => { setIsChatOpen(false); isChatOpenRef.current = false; }} className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-700">
               <X size={20} />
             </button>
           </div>
@@ -486,6 +580,7 @@ const TelemedicineRoom = () => {
         </div>
       )}
 
+      </div>
     </div>
   );
 };

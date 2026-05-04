@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { io } from "socket.io-client";
-import { Loader2, ArrowLeft, ShieldCheck, Video, Mic, MicOff, VideoOff, PhoneOff, User, MessageSquare, Maximize, Minimize, Send, X } from "lucide-react";
+import { Loader2, ArrowLeft, ShieldCheck, Video, Mic, MicOff, VideoOff, PhoneOff, User, MessageSquare, Maximize, Minimize, Send, X, CameraOff } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 const SessionRoom = () => {
@@ -18,6 +18,10 @@ const SessionRoom = () => {
   const [remoteStream, setRemoteStream] = useState(null);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+
+  const localStreamRef = useRef(null);
+  useEffect(() => { localStreamRef.current = localStream; }, [localStream]);
 
   const localVideoRef = useRef();
   const remoteVideoRef = useRef();
@@ -28,8 +32,10 @@ const SessionRoom = () => {
   // Chat & Fullscreen states
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [messages, setMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
+  const isChatOpenRef = useRef(false);
 
   const pcConfig = {
     iceServers: [
@@ -40,7 +46,6 @@ const SessionRoom = () => {
 
   useEffect(() => {
     setupMedia();
-    setupSocket();
 
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
@@ -63,6 +68,18 @@ const SessionRoom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isChatOpen]);
 
+  useEffect(() => {
+    if (!loading && localStream && localVideoRef.current) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [loading, localStream]);
+
+  useEffect(() => {
+    if (remoteStream && remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
+
   const setupMedia = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -70,9 +87,13 @@ const SessionRoom = () => {
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       setLoading(false);
     } catch (error) {
-      toast.error("Failed to access Camera/Microphone.");
+      toast.error("Camera/Microphone access denied. You will join without video/audio.");
       console.error(error);
+      setIsVideoEnabled(false);
+      setIsAudioEnabled(false);
       setLoading(false);
+    } finally {
+      setupSocket();
     }
   };
 
@@ -82,6 +103,11 @@ const SessionRoom = () => {
 
     newSocket.on("connect", () => {
       newSocket.emit("joinTelemedicineRoom", roomId);
+      newSocket.emit("patient_ready", { roomId });
+    });
+
+    newSocket.on("doctor_ready", () => {
+      newSocket.emit("patient_ready", { roomId });
     });
 
     newSocket.on("webrtc_offer", async (data) => {
@@ -120,6 +146,10 @@ const SessionRoom = () => {
 
     newSocket.on("chat_message", (msg) => {
       setMessages((prev) => [...prev, msg]);
+      // Show red dot if message is from doctor and chat is closed
+      if (msg.isDoctor && !isChatOpenRef.current) {
+        setHasUnreadMessages(true);
+      }
     });
   };
 
@@ -129,9 +159,17 @@ const SessionRoom = () => {
     const pc = new RTCPeerConnection(pcConfig);
     peerConnectionRef.current = pc;
 
-    if (localStream) {
-      localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => pc.addTrack(track, localStreamRef.current));
     }
+
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === "connected") {
+        setIsConnected(true);
+      } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed" || pc.connectionState === "closed") {
+        setIsConnected(false);
+      }
+    };
 
     pc.ontrack = (event) => {
       setRemoteStream(event.streams[0]);
@@ -227,8 +265,10 @@ const SessionRoom = () => {
       </div>
       )}
 
-      {/* Main Video Area */}
-      <div className="flex-1 relative bg-black flex flex-col">
+      {/* Main Container for Video and Chat */}
+      <div className="flex-1 flex flex-row min-h-0 overflow-hidden">
+        {/* Main Video Area */}
+        <div className="flex-1 relative bg-black flex flex-col min-h-0 overflow-hidden">
         {loading ? (
           <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4">
             <Loader2 className="w-12 h-12 text-blue-500 animate-spin" />
@@ -237,12 +277,17 @@ const SessionRoom = () => {
         ) : (
           <>
             {/* Remote Video (Doctor) */}
-            <div className="flex-1 relative w-full h-full flex items-center justify-center overflow-hidden">
-              {!remoteStream ? (
+            <div className="flex-1 relative w-full h-full flex items-center justify-center overflow-hidden min-h-0">
+              {(!remoteStream && !isConnected) ? (
                 <div className="text-center text-slate-600">
                   <User size={64} className="mx-auto mb-4 opacity-20" />
                   <p className="font-bold text-lg">Waiting for Doctor to join...</p>
                   <p className="text-sm mt-2">The doctor will initiate the video call when ready.</p>
+                </div>
+              ) : (!remoteStream && isConnected) ? (
+                <div className="text-center text-slate-600">
+                  <User size={64} className="mx-auto mb-4 opacity-20" />
+                  <p className="font-bold text-lg">Doctor connected (No Camera/Audio)</p>
                 </div>
               ) : null}
               
@@ -256,20 +301,27 @@ const SessionRoom = () => {
 
             {/* Local Video (Patient) - Picture in Picture style */}
             <div className="absolute bottom-24 right-6 w-32 sm:w-48 aspect-video bg-slate-800 rounded-2xl overflow-hidden border-2 border-slate-700 shadow-2xl z-10">
-              <video 
-                ref={localVideoRef} 
-                autoPlay 
-                playsInline 
-                muted 
-                className="w-full h-full object-cover transform scale-x-[-1]"
-              />
+              {!localStream ? (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 border border-slate-700">
+                  <CameraOff size={24} className="text-slate-500 mb-1" />
+                  <span className="text-[10px] text-slate-400 text-center px-2">Camera Off</span>
+                </div>
+              ) : (
+                <video 
+                  ref={localVideoRef} 
+                  autoPlay 
+                  playsInline 
+                  muted 
+                  className="w-full h-full object-cover transform scale-x-[-1]"
+                />
+              )}
               <div className="absolute bottom-2 left-2 text-[10px] bg-black/60 px-2 py-1 rounded text-white font-medium backdrop-blur-sm">
                 You
               </div>
             </div>
 
             {/* Controls Overlay */}
-            <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between px-8 pb-4">
+            <div className="absolute bottom-0 inset-x-0 h-24 bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between px-8 pb-4 z-20">
               <div className="w-1/3 flex justify-start items-center"></div>
 
               <div className="w-1/3 flex justify-center items-center gap-4">
@@ -297,10 +349,18 @@ const SessionRoom = () => {
 
               <div className="w-1/3 flex justify-end items-center gap-4">
                 <button 
-                  onClick={() => setIsChatOpen(!isChatOpen)} 
-                  className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg border ${isChatOpen ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'}`}
+                  onClick={() => {
+                    const newVal = !isChatOpen;
+                    setIsChatOpen(newVal);
+                    isChatOpenRef.current = newVal;
+                    if (newVal) setHasUnreadMessages(false);
+                  }} 
+                  className={`relative w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg border ${isChatOpen ? 'bg-blue-600 text-white border-blue-500' : 'bg-slate-800 hover:bg-slate-700 text-white border-slate-700'}`}
                 >
                   <MessageSquare size={20} />
+                  {hasUnreadMessages && (
+                    <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-slate-900"></span>
+                  )}
                 </button>
                 <button 
                   onClick={toggleFullscreen} 
@@ -311,15 +371,16 @@ const SessionRoom = () => {
               </div>
             </div>
           </>
+
         )}
       </div>
 
       {/* Chat Panel */}
       {isChatOpen && (
-        <div className="w-80 bg-slate-900 flex flex-col shrink-0 z-30 h-full absolute right-0 top-0 bottom-0 shadow-2xl border-l border-slate-700">
+        <div className="w-80 bg-slate-900 flex flex-col shrink-0 z-30 h-full border-l border-slate-700 relative">
           <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-800/50">
             <h3 className="text-white font-bold flex items-center gap-2"><MessageSquare size={18} className="text-blue-500" /> In-Call Messages</h3>
-            <button onClick={() => setIsChatOpen(false)} className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-700">
+            <button onClick={() => { setIsChatOpen(false); isChatOpenRef.current = false; }} className="text-slate-400 hover:text-white p-1 rounded-md hover:bg-slate-700">
               <X size={20} />
             </button>
           </div>
@@ -360,6 +421,7 @@ const SessionRoom = () => {
           </form>
         </div>
       )}
+      </div>
     </div>
   );
 };

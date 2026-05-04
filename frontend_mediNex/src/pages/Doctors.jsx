@@ -119,7 +119,7 @@ const Doctors = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: idx * 0.06 }}
             whileHover={{ scale: 1.03 }}
-            onClick={() => navigate(`/appointments/${item._id}`)}
+            onClick={() => navigate(`/doctors/view/${item._id}`)}
             className="cursor-pointer bg-white rounded-2xl shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 overflow-hidden group"
           >
             <div className="relative w-full h-60 overflow-hidden">

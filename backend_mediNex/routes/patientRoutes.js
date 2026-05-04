@@ -40,7 +40,7 @@ patientRouter.put("/location", verifyToken, updatePatientLocation);
 
 // ── Phase 3: Doctor Search & Filter ─────────────────────────────
 patientRouter.get("/doctors", searchDoctors);
-patientRouter.get("/doctors/:id", verifyToken, getDoctorDetails);
+patientRouter.get("/doctors/:id", getDoctorDetails);
 
 // ── Phase 3: Smart Booking System ───────────────────────────────
 patientRouter.post("/book", verifyToken, createBooking);

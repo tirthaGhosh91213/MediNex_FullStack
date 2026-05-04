@@ -1,14 +1,42 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "react-hot-toast";
 import { Star, Loader2, MessageSquareHeart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../../context/AuthContext";
 
 const RatingModal = ({ isOpen, onClose, booking }) => {
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [review, setReview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { token, user } = useAuth();
+
+  useEffect(() => {
+    if (isOpen && booking) {
+      const fetchDoctor = async () => {
+        try {
+          const doctorId = booking.doctorId?._id || booking.doctorId;
+          const { data } = await axios.get(`http://localhost:4000/api/patient/doctors/${doctorId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (data.success && data.doctor.ratings) {
+             const existing = data.doctor.ratings.find(
+               r => r.patientId?._id === user?.id || r.patientId === user?.id
+             );
+             if (existing) {
+                setRating(existing.score);
+                setHoverRating(existing.score);
+                setReview(existing.review);
+             }
+          }
+        } catch (e) {
+          console.error("Failed to fetch existing review:", e);
+        }
+      };
+      fetchDoctor();
+    }
+  }, [isOpen, booking, token, user]);
 
   if (!isOpen || !booking) return null;
 

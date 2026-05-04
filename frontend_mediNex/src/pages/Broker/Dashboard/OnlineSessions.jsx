@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useAuth } from "../../../context/AuthContext";
 import { toast } from "react-hot-toast";
-import { Video, ShieldCheck, PlayCircle, Loader2, CalendarClock, User, Stethoscope, Link as LinkIcon, CheckCircle2, KeyRound } from "lucide-react";
+import { Video, ShieldCheck, PlayCircle, Loader2, CalendarClock, User, Stethoscope, Link as LinkIcon, CheckCircle2, KeyRound, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const OnlineSessions = () => {
@@ -78,13 +78,15 @@ const OnlineSessions = () => {
   const handleShareCredentials = async (sessionGroup) => {
     setProcessing(prev => ({ ...prev, [`share_${sessionGroup.id}`]: true }));
     try {
-      const generatedLink = `${window.location.origin}/telemedicine-room/${sessionGroup.id}?doctorId=${sessionGroup.doctor._id}`;
+      const doctorLink = `${window.location.origin}/telemedicine-room/${sessionGroup.id}?doctorId=${sessionGroup.doctor._id}`;
+      const patientLink = `${window.location.origin}/session/${sessionGroup.id}`;
 
       const { data } = await axios.put(`${backendUrl}/api/broker/session/credentials`, 
         { 
           doctorId: sessionGroup.doctor._id,
           time_slot: sessionGroup.time_slot,
-          meeting_link: generatedLink,
+          meeting_link: patientLink,
+          doctor_link: doctorLink,
           host_code: "N/A" // host code is no longer needed since it's an inbuilt system
         },
         { headers: { Authorization: `Bearer ${token}` } }
@@ -106,6 +108,21 @@ const OnlineSessions = () => {
       toast.error(error.response?.data?.message || "Failed to share credentials.");
     } finally {
       setProcessing(prev => ({ ...prev, [`share_${sessionGroup.id}`]: false }));
+    }
+  };
+
+  const handleDeleteBooking = async (bookingId) => {
+    if (!window.confirm("Are you sure you want to remove this waiting patient?")) return;
+    try {
+      const { data } = await axios.delete(`${backendUrl}/api/broker/bookings/${bookingId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (data.success) {
+        toast.success(data.message);
+        fetchSessions();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to delete booking.");
     }
   };
 
@@ -203,7 +220,7 @@ const OnlineSessions = () => {
                           </div>
                         </div>
                         
-                        <div>
+                        <div className="flex items-center gap-2">
                           {patient.status === "Completed" ? (
                             <span className="text-green-600 font-bold text-sm bg-green-100 px-3 py-1.5 rounded-lg flex items-center gap-1"><CheckCircle2 size={14} /> Completed</span>
                           ) : patient.is_session_started ? (
@@ -211,9 +228,18 @@ const OnlineSessions = () => {
                               <Video size={16} className="animate-pulse" /> In Session
                             </span>
                           ) : (
-                            <span className="text-amber-600 font-bold text-sm bg-amber-100 px-3 py-1.5 rounded-xl flex items-center gap-1.5 border border-amber-200">
-                              Waiting
-                            </span>
+                            <>
+                              <span className="text-amber-600 font-bold text-sm bg-amber-100 px-3 py-1.5 rounded-xl flex items-center gap-1.5 border border-amber-200">
+                                Waiting
+                              </span>
+                              <button
+                                onClick={() => handleDeleteBooking(patient._id)}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 hover:text-red-700 transition-colors"
+                                title="Remove from queue"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>

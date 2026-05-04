@@ -215,10 +215,15 @@ export const getDoctorDetails = async (req, res) => {
     const { id } = req.params;
     const { date } = req.query; // optional date to check booking count
 
-    const doctor = await Doctor.findById(id).populate({
-      path: "brokerId",
-      select: "name clinic_name clinic_address clinic_location location phone",
-    });
+    const doctor = await Doctor.findById(id)
+      .populate({
+        path: "brokerId",
+        select: "name clinic_name clinic_address clinic_location location phone",
+      })
+      .populate({
+        path: "ratings.patientId",
+        select: "name avatar",
+      });
 
     if (!doctor || !doctor.is_verified) {
       return res.status(404).json({
@@ -498,6 +503,13 @@ export const createBooking = async (req, res) => {
       status: "Accepted", // Instant approval upon "payment"
     });
 
+    const io = req.app.get("io");
+    if (io) {
+      if (booking_mode === "Online") {
+        io.to(`telemed_${doctorId}_${time_slot}`).emit("queue_updated");
+      }
+    }
+
     res.status(201).json({
       success: true,
       message:
@@ -605,10 +617,16 @@ export const getNearbyDoctors = async (req, res) => {
     const brokerIds = nearbyBrokers.map((b) => b._id);
 
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-    const todayName = days[new Date().getDay()];
+    const now = new Date();
+    const todayName = days[now.getDay()];
+    
+    // Get current time in HH:MM format
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const currentTimeStr = `${hours}:${minutes}`;
 
     // Find verified doctors belonging to nearby clinics who are scheduled for today
-    const doctors = await Doctor.find({
+    let doctors = await Doctor.find({
       brokerId: { $in: brokerIds },
       is_verified: true,
       "schedule.day": todayName
@@ -618,6 +636,23 @@ export const getNearbyDoctors = async (req, res) => {
         select: "clinic_name clinic_address location",
       })
       .select("name specialization avatar fees experience degree schedule");
+
+    // Filter by current time slot
+    doctors = doctors.filter(doc => {
+      const todaySchedule = doc.schedule.find(s => s.day === todayName);
+      if (!todaySchedule || !todaySchedule.from || !todaySchedule.to) return false;
+      
+      const { from, to } = todaySchedule;
+      
+      // Handle normal daytime slots (e.g., 09:00 to 17:00)
+      if (from <= to) {
+        return currentTimeStr >= from && currentTimeStr <= to;
+      } 
+      // Handle overnight slots (e.g., 22:00 to 02:00)
+      else {
+        return currentTimeStr >= from || currentTimeStr <= to;
+      }
+    });
 
     res.status(200).json({
       success: true,
@@ -818,10 +853,17 @@ export const submitReview = async (req, res) => {
     const doctor = await Doctor.findById(booking.doctorId);
     if (!doctor) return res.status(404).json({ success: false, message: "Doctor not found." });
 
-    // Check if review already exists for this booking/patient (optional logic: update if exists or append a new one in the array?)
-    // Here we just add to ratings array.
+    const existingReviewIndex = doctor.ratings.findIndex(r => r.patientId.toString() === patientId);
 
-    doctor.ratings.push({ patientId, score, review });
+    if (existingReviewIndex !== -1) {
+      // Update existing review
+      doctor.ratings[existingReviewIndex].score = score;
+      doctor.ratings[existingReviewIndex].review = review;
+      doctor.ratings[existingReviewIndex].date = new Date();
+    } else {
+      // Add new review
+      doctor.ratings.push({ patientId, score, review, date: new Date() });
+    }
     
     // Recalculate average
     const totalScore = doctor.ratings.reduce((acc, curr) => acc + curr.score, 0);

@@ -12,6 +12,7 @@ import patientRouter from "./routes/patientRoutes.js";
 import queueRouter from "./routes/queueRoutes.js";
 import cron from "node-cron";
 import PatientMessage from "./models/patientMessageModel.js";
+import Booking from "./models/bookingModel.js";
 
 // ── Initialize Express App ──────────────────────────────────────
 const app = express();
@@ -92,8 +93,54 @@ io.on("connection", (socket) => {
     io.to(`patient_${data.patientId}`).emit("you_are_next", data);
   });
 
-  socket.on("end_telemed_call", (data) => {
-    socket.to(`telemed_${data.roomId}`).emit("end_telemed_call");
+  socket.on("doctor_ready", (data) => {
+    socket.to(`telemed_${data.roomId}`).emit("doctor_ready", { senderId: socket.id });
+  });
+
+  socket.on("patient_ready", (data) => {
+    socket.to(`telemed_${data.roomId}`).emit("patient_ready", { senderId: socket.id });
+  });
+
+  socket.on("start_telemed_session", async (data) => {
+    try {
+      const booking = await Booking.findById(data.bookingId);
+      if (booking) {
+        booking.is_session_started = true;
+        if (booking.status === "Pending") booking.status = "Accepted";
+        if (!booking.meeting_link) {
+          booking.meeting_link = `${process.env.FRONTEND_URL || "http://localhost:5173"}/session/${data.roomId}`;
+        }
+        await booking.save();
+      }
+      io.to(`patient_${data.patientId}`).emit("sessionStarted", {
+        bookingId: data.bookingId,
+        message: "The doctor is ready for you! Please join the call now.",
+        meeting_link: booking?.meeting_link || `${process.env.FRONTEND_URL || "http://localhost:5173"}/session/${data.roomId}`
+      });
+    } catch (err) {
+      console.error("Error starting telemed session:", err);
+    }
+  });
+
+  socket.on("end_telemed_call", async (data) => {
+    try {
+      if (data.bookingId) {
+        const booking = await Booking.findById(data.bookingId);
+        if (booking) {
+          booking.status = "Completed";
+          await booking.save();
+        }
+      }
+      if (data.patientId) {
+        io.to(`patient_${data.patientId}`).emit("sessionEnded", {
+          bookingId: data.bookingId,
+          message: "Your consultation has ended. Thank you."
+        });
+      }
+      socket.to(`telemed_${data.roomId}`).emit("end_telemed_call");
+    } catch (err) {
+      console.error("Error ending telemed session:", err);
+    }
   });
 
   socket.on("chat_message", (data) => {

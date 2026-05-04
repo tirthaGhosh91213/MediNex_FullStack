@@ -19,6 +19,7 @@ import DoctorDetails from "./pages/Patient/DoctorDetails";
 import AIAssistant from "./pages/Patient/AIAssistant";
 import SessionRoom from "./pages/SessionRoom";
 import TelemedicineRoom from "./pages/TelemedicineRoom";
+import PublicDoctorDetails from "./pages/PublicDoctorDetails";
 
 // Broker Imports
 import BrokerLayout from "./pages/Broker/BrokerLayout";
@@ -42,7 +43,9 @@ function App() {
                      location.pathname.startsWith("/register") ||
                      location.pathname.startsWith("/admin") ||
                      location.pathname.startsWith("/broker") ||
-                     location.pathname.startsWith("/patient");
+                     location.pathname.startsWith("/patient") ||
+                     location.pathname.startsWith("/session") ||
+                     location.pathname.startsWith("/telemedicine-room");
 
   return (
     <>
@@ -55,6 +58,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/doctors" element={<Doctors />} />
         <Route path="/doctors/:specialty" element={<Doctors />} />
+        <Route path="/doctors/view/:id" element={<PublicDoctorDetails />} />
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/session/:roomId" element={<SessionRoom />} />

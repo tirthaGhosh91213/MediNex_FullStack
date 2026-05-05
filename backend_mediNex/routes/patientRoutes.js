@@ -53,7 +53,7 @@ patientRouter.post("/emergency/book", verifyToken, createEmergencyBooking);
 
 // ── Phase 8: Patient Health Vault & Reviews ───────────────────────
 import { upload } from "../config/cloudinary.js";
-import { uploadHealthRecord, getHealthVault, deleteHealthRecord, submitReview, getMyMessages, clearMessage } from "../controllers/patientController.js";
+import { uploadHealthRecord, getHealthVault, deleteHealthRecord, submitReview, getMyMessages, clearMessage, deleteMedicationAlarm } from "../controllers/patientController.js";
 
 patientRouter.post("/vault/upload", verifyToken, upload.array("health_record", 10), uploadHealthRecord);
 patientRouter.get("/vault", verifyToken, getHealthVault);
@@ -64,9 +64,10 @@ patientRouter.post("/review/:bookingId", verifyToken, submitReview);
 patientRouter.get("/messages", verifyToken, getMyMessages);
 patientRouter.delete("/messages/:id", verifyToken, clearMessage);
 
-// ── Phase 14: AI Assistant ────────────────────────────────────────
+// ── Phase 14: AI Assistant & Alarms ───────────────────────────────
 import { checkSymptoms, analyzePrescription } from "../controllers/aiController.js";
 patientRouter.post("/ai/symptom-checker", verifyToken, checkSymptoms);
 patientRouter.post("/ai/analyze-prescription", verifyToken, upload.single("prescription"), analyzePrescription);
+patientRouter.delete("/alarms/:alarmId", verifyToken, deleteMedicationAlarm);
 
 export default patientRouter;

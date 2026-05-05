@@ -918,3 +918,39 @@ export const clearMessage = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+// ═══════════════════════════════════════════════════════════════════
+//  PHASE 14: AI MEDICATION ALARMS
+// ═══════════════════════════════════════════════════════════════════
+
+export const deleteMedicationAlarm = async (req, res) => {
+  try {
+    const { alarmId } = req.params;
+    const patientId = req.user.id;
+
+    const patient = await Patient.findById(patientId);
+    if (!patient) {
+      return res.status(404).json({ success: false, message: "Patient not found." });
+    }
+
+    const alarmIndex = patient.medication_alarms.findIndex(
+      (a) => a._id.toString() === alarmId
+    );
+
+    if (alarmIndex === -1) {
+      return res.status(404).json({ success: false, message: "Alarm not found." });
+    }
+
+    patient.medication_alarms.splice(alarmIndex, 1);
+    await patient.save();
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Alarm turned off successfully.",
+      medication_alarms: patient.medication_alarms
+    });
+  } catch (error) {
+    console.error("Delete Alarm Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

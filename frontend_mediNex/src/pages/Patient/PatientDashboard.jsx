@@ -4,6 +4,7 @@ import { Search, Filter, Loader2, Sparkles, UserSearch, MapPin, Activity, Calend
 import DoctorCard from "./DoctorCard";
 import EmergencyBooking from "./EmergencyBooking";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
 import { toast } from "react-hot-toast";
 
@@ -19,8 +20,12 @@ const PatientDashboard = () => {
   const [showEmergency, setShowEmergency] = useState(false);
 
   // Filters
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const initialSpecialty = queryParams.get("specialization") || "";
+  
   const [searchTerm, setSearchTerm] = useState("");
-  const [specialtyFilter, setSpecialtyFilter] = useState("");
+  const [specialtyFilter, setSpecialtyFilter] = useState(initialSpecialty);
 
   const specializations = [
     "Cardiologist", "Dermatologist", "Neurologist", 

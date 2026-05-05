@@ -20,29 +20,46 @@ const getOpenRouterModel = () => {
  */
 export const checkSymptoms = async (req, res) => {
   try {
-    const { symptoms } = req.body;
+    const { symptoms, location, budget } = req.body;
     
     if (!symptoms) {
       return res.status(400).json({ success: false, message: "Symptoms text is required" });
     }
 
     const openai = getOpenRouterModel();
-    const systemPrompt = `You are a medical AI assistant. The user will input symptoms in English, Bengali, or 'Banglish' (Bengali written in English letters). Understand the problem, write a short, empathetic 2-line advice in the same language, and return a STRICT JSON output containing: { "advice": "string", "recommended_specialization": "string" }. The specialization MUST exactly match one of these: [Cardiologist, General Physician, Dermatologist, Neurologist, Orthopedic, Pediatrician]. Do not wrap the JSON in Markdown formatting (no \`\`\`json). Just return the raw JSON object.`;
+    
+    let userPrompt = `User Symptoms: ${symptoms}`;
+    if (location) userPrompt += `\nUser Location: ${location}`;
+    if (budget) userPrompt += `\nUser Budget: ${budget}`;
+
+    const systemPrompt = `You are a medical AI assistant. The user will input symptoms in English, Bengali, or 'Banglish' (Bengali written in English letters). They may also provide an optional Location and Budget. Understand the problem, write a short, empathetic 2-line advice in the same language. If location or budget is provided, briefly acknowledge it (e.g. 'You can easily find a doctor near [location] within [budget]'). Return a STRICT JSON output containing: { "advice": "string", "recommended_specialization": "string" }. The specialization MUST exactly match one of these: [Cardiologist, General Physician, Dermatologist, Neurologist, Orthopedic, Pediatrician]. Do not wrap the JSON in Markdown formatting (no \`\`\`json). Just return the raw JSON object.`;
     
     const response = await openai.chat.completions.create({
       model: "openai/gpt-4o-mini",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `User Symptoms: ${symptoms}` }
+        { role: "user", content: userPrompt }
       ]
     });
+    
+    if (!response || !response.choices || !response.choices.length) {
+      return res.status(500).json({ success: false, message: "Empty response from AI." });
+    }
     
     const responseText = response.choices[0].message.content;
     
     // Parse the JSON strictly
     try {
-      const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-      const parsedOutput = JSON.parse(cleanedText);
+      let jsonString = responseText;
+      const firstBrace = responseText.indexOf('{');
+      const lastBrace = responseText.lastIndexOf('}');
+      if (firstBrace !== -1 && lastBrace !== -1) {
+        jsonString = responseText.substring(firstBrace, lastBrace + 1);
+      } else {
+        jsonString = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      }
+      
+      const parsedOutput = JSON.parse(jsonString);
       return res.status(200).json({ success: true, result: parsedOutput });
     } catch (parseError) {
       console.error("AI Output Parsing Error:", responseText);
@@ -85,14 +102,34 @@ export const analyzePrescription = async (req, res) => {
       ]
     });
     
+    if (!response || !response.choices || !response.choices.length) {
+      return res.status(500).json({ success: false, message: "Empty response from AI." });
+    }
+
     const responseText = response.choices[0].message.content;
     
     let parsedArray;
     try {
-      const cleanedText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-      parsedArray = JSON.parse(cleanedText);
+      let jsonString = responseText;
+      const firstBracket = responseText.indexOf('[');
+      const lastBracket = responseText.lastIndexOf(']');
+      if (firstBracket !== -1 && lastBracket !== -1) {
+        jsonString = responseText.substring(firstBracket, lastBracket + 1);
+      } else {
+        jsonString = responseText.replace(/```json/gi, '').replace(/```/g, '').trim();
+      }
+
+      parsedArray = JSON.parse(jsonString);
+      
+      // Fallback: If AI returned an object with an array inside it e.g. { medicines: [...] }
       if (!Array.isArray(parsedArray)) {
-        throw new Error("Parsed result is not an array");
+        const values = Object.values(parsedArray);
+        const arrayValue = values.find(val => Array.isArray(val));
+        if (arrayValue) {
+          parsedArray = arrayValue;
+        } else {
+          throw new Error("Parsed result does not contain an array");
+        }
       }
     } catch (parseError) {
       console.error("Prescription AI Parsing Error:", responseText);

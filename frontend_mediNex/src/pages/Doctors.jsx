@@ -6,17 +6,17 @@ import { AppContext } from "../context/AppContext";
 const norm = (s) => (s ? String(s).trim().toLowerCase() : "");
 
 const Doctors = () => {
-  const { specilaty } = useParams();
+  const { specialty } = useParams();
   const [filterDoc, setFilterDoc] = useState([]);
   const [showFilter, setShowFilter] = useState(false);
   const navigate = useNavigate();
   const { doctors = [] } = useContext(AppContext);
 
   const applyFilter = () => {
-    if (specilaty) {
-      const target = norm(specilaty);
+    if (specialty) {
+      const target = norm(specialty);
       const next = doctors.filter((doc) => {
-        const docKey = norm(doc.speciality ?? doc.specilaty);
+        const docKey = norm(doc.speciality ?? doc.specilaty ?? doc.specialty);
         return docKey === target;
       });
       setFilterDoc(next);
@@ -27,7 +27,7 @@ const Doctors = () => {
 
   useEffect(() => {
     applyFilter();
-  }, [doctors, specilaty]);
+  }, [doctors, specialty]);
 
   const specialties = [
     "Cardiologist",
@@ -81,7 +81,7 @@ const Doctors = () => {
           whileTap={{ scale: 0.96 }}
           onClick={() => navigate("/doctors")}
           className={`px-5 py-2 rounded-full border font-medium shadow-sm transition-all duration-300 ${
-            !specilaty
+            !specialty
               ? "bg-blue-600 text-white shadow-lg"
               : "bg-white/70 text-gray-700 hover:bg-blue-100 hover:text-blue-600"
           }`}
@@ -95,12 +95,12 @@ const Doctors = () => {
             whileHover={{ scale: 1.08 }}
             whileTap={{ scale: 0.96 }}
             onClick={() =>
-              norm(specilaty) === norm(speciality)
+              norm(specialty) === norm(speciality)
                 ? navigate("/doctors")
                 : navigate(`/doctors/${speciality}`)
             }
             className={`px-5 py-2 rounded-full border font-medium shadow-sm transition-all duration-300 ${
-              norm(specilaty) === norm(speciality)
+              norm(specialty) === norm(speciality)
                 ? "bg-blue-600 text-white shadow-lg"
                 : "bg-white/70 text-gray-700 hover:bg-blue-100 hover:text-blue-600"
             }`}
@@ -153,8 +153,8 @@ const Doctors = () => {
           animate={{ opacity: 1 }}
           className="text-center text-gray-500 mt-12 text-lg"
         >
-          {specilaty
-            ? `No doctors available for "${specilaty}" right now.`
+          {specialty
+            ? `No doctors available for "${specialty}" right now.`
             : "No doctors available right now."}
         </motion.p>
       )}

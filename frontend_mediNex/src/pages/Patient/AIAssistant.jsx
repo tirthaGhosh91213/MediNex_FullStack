@@ -5,7 +5,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { 
   Bot, HeartPulse, Camera, Stethoscope, 
-  Send, Loader2, Info, Search, FileImage, ShieldCheck
+  Send, Loader2, Info, Search, FileImage, ShieldCheck, MapPin
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -16,8 +16,44 @@ const AIAssistant = () => {
 
   // Symptom Checker State
   const [symptomInput, setSymptomInput] = useState("");
+  const [locationInput, setLocationInput] = useState("");
+  const [budgetInput, setBudgetInput] = useState("");
   const [symptomResult, setSymptomResult] = useState(null);
   const [isChecking, setIsChecking] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+    
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const res = await axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          if (res.data && res.data.address) {
+            const { city, state_district, state, suburb, village, town } = res.data.address;
+            const locationString = city || town || suburb || village || state_district || state || "Your Location";
+            setLocationInput(locationString);
+            toast.success("Location updated successfully!");
+          } else {
+            setLocationInput(`${latitude.toFixed(2)}, ${longitude.toFixed(2)}`);
+          }
+        } catch (error) {
+          toast.error("Failed to fetch address");
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      (error) => {
+        toast.error("Unable to retrieve your location");
+        setIsLocating(false);
+      }
+    );
+  };
 
   // Prescription Analyzer State
   const [selectedFile, setSelectedFile] = useState(null);
@@ -38,7 +74,11 @@ const AIAssistant = () => {
     try {
       const { data } = await axios.post(
         `${backendUrl}/api/patient/ai/symptom-checker`,
-        { symptoms: symptomInput },
+        { 
+          symptoms: symptomInput,
+          location: locationInput,
+          budget: budgetInput
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -157,6 +197,39 @@ const AIAssistant = () => {
                   placeholder="e.g., I have a severe headache and slight fever since morning... OR Amar matha betha korche..."
                   className="w-full flex-1 min-h-[200px] p-5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 resize-none font-medium text-slate-700"
                 ></textarea>
+                <div className="flex gap-4 mt-4">
+                  <div className="flex-1">
+                    <label className="text-xs font-bold text-slate-500 mb-1 block">Your Location (Optional)</label>
+                    <div className="relative">
+                      <input 
+                        type="text"
+                        value={locationInput}
+                        onChange={(e) => setLocationInput(e.target.value)}
+                        placeholder="e.g., Kolkata, Salt Lake..."
+                        className="w-full p-3 pr-12 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm font-medium text-slate-700"
+                      />
+                      <button 
+                        type="button"
+                        onClick={handleGetCurrentLocation}
+                        disabled={isLocating}
+                        title="Use Current Location"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-indigo-500 hover:bg-indigo-100 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {isLocating ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <label className="text-xs font-bold text-slate-500 mb-1 block">Your Budget (Optional)</label>
+                    <input 
+                      type="text"
+                      value={budgetInput}
+                      onChange={(e) => setBudgetInput(e.target.value)}
+                      placeholder="e.g., Under ₹500, ₹1000..."
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/50 text-sm font-medium text-slate-700"
+                    />
+                  </div>
+                </div>
                 <div className="mt-6 flex justify-end">
                   <button 
                     type="submit"
@@ -202,7 +275,7 @@ const AIAssistant = () => {
                        <p className="text-sm font-bold text-indigo-200 uppercase tracking-widest mb-2">Recommended Specialist</p>
                        <h2 className="text-3xl font-black mb-8">{symptomResult.recommended_specialization}</h2>
                        <button 
-                         onClick={() => navigate(`/patient/doctors?specialization=${encodeURIComponent(symptomResult.recommended_specialization)}`)}
+                         onClick={() => navigate(`/patient/dashboard?specialization=${encodeURIComponent(symptomResult.recommended_specialization)}`)}
                          className="w-full bg-white text-indigo-700 hover:bg-indigo-50 py-4 rounded-xl font-black flex items-center justify-center gap-2 transition-colors"
                        >
                          <Search size={18} /> Find {symptomResult.recommended_specialization}s

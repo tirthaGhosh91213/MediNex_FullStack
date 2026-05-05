@@ -10,12 +10,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { io } from "socket.io-client";
 import axios from "axios";
 import AlarmSystem from "../../components/AlarmSystem";
+import PatientProfileModal from "./PatientProfileModal";
 
 const PatientLayout = () => {
   const { user, token, logout } = useAuth();
   const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isInboxOpen, setIsInboxOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [messages, setMessages] = useState([]);
 
   const backendUrl = "http://localhost:4000";
@@ -284,7 +286,10 @@ const PatientLayout = () => {
             </div>
           
             {/* User Profile Pill */}
-            <div className="flex items-center gap-4 bg-white p-1.5 pr-6 rounded-[1.25rem] border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer group">
+            <div 
+              onClick={() => setIsProfileOpen(true)}
+              className="flex items-center gap-4 bg-white p-1.5 pr-6 rounded-[1.25rem] border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer group"
+            >
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-600/20 overflow-hidden shrink-0">
                  {user?.avatar ? <img src={user.avatar} className="object-cover w-full h-full" alt="profile"/> : <User size={20} />}
               </div>
@@ -301,6 +306,8 @@ const PatientLayout = () => {
            <Outlet />
         </main>
       </div>
+
+      <PatientProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
     </div>
   );
 };

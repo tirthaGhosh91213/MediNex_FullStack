@@ -53,7 +53,7 @@ patientRouter.post("/emergency/book", verifyToken, createEmergencyBooking);
 
 // ── Phase 8: Patient Health Vault & Reviews ───────────────────────
 import { upload } from "../config/cloudinary.js";
-import { uploadHealthRecord, getHealthVault, deleteHealthRecord, submitReview, getMyMessages, clearMessage, deleteMedicationAlarm } from "../controllers/patientController.js";
+import { uploadHealthRecord, getHealthVault, deleteHealthRecord, submitReview, getMyMessages, clearMessage } from "../controllers/patientController.js";
 
 patientRouter.post("/vault/upload", verifyToken, upload.array("health_record", 10), uploadHealthRecord);
 patientRouter.get("/vault", verifyToken, getHealthVault);
@@ -65,9 +65,15 @@ patientRouter.get("/messages", verifyToken, getMyMessages);
 patientRouter.delete("/messages/:id", verifyToken, clearMessage);
 
 // ── Phase 14: AI Assistant & Alarms ───────────────────────────────
+import { toggleMedicationAlarm, updateMedicationAlarmTimes, uploadPatientAvatar, uploadPatientRingtone, deletePatientRingtone } from "../controllers/patientController.js";
 import { checkSymptoms, analyzePrescription } from "../controllers/aiController.js";
+
+patientRouter.post("/profile/avatar", verifyToken, upload.single("avatar"), uploadPatientAvatar);
+patientRouter.post("/profile/ringtone", verifyToken, upload.single("ringtone"), uploadPatientRingtone);
+patientRouter.delete("/profile/ringtone", verifyToken, deletePatientRingtone);
 patientRouter.post("/ai/symptom-checker", verifyToken, checkSymptoms);
 patientRouter.post("/ai/analyze-prescription", verifyToken, upload.single("prescription"), analyzePrescription);
-patientRouter.delete("/alarms/:alarmId", verifyToken, deleteMedicationAlarm);
+patientRouter.put("/alarms/:alarmId/toggle", verifyToken, toggleMedicationAlarm);
+patientRouter.put("/alarms/:alarmId/times", verifyToken, updateMedicationAlarmTimes);
 
 export default patientRouter;

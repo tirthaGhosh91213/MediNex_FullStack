@@ -47,6 +47,10 @@ const patientSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    custom_ringtone: {
+      type: String,
+      default: "",
+    },
     // Patient's location for nearby-clinic search
     location: {
       type: {
@@ -77,6 +81,7 @@ const patientSchema = new mongoose.Schema(
         medicineName: { type: String, required: true },
         durationDays: { type: Number, required: true },
         times: [{ type: String, required: true }], // e.g., "08:00", "14:00"
+        isActive: { type: Boolean, default: true },
         addedAt: { type: Date, default: Date.now }
       }
     ]

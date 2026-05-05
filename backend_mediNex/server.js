@@ -13,6 +13,7 @@ import queueRouter from "./routes/queueRoutes.js";
 import cron from "node-cron";
 import PatientMessage from "./models/patientMessageModel.js";
 import Booking from "./models/bookingModel.js";
+import Patient from "./models/patientModel.js";
 
 // ── Initialize Express App ──────────────────────────────────────
 const app = express();
@@ -202,10 +203,40 @@ app.use((err, req, res, next) => {
 
 // ── Cron Jobs ───────────────────────────────────────────────────
 // Run every day at midnight to clear patient broadcast messages
+// Run every day at midnight to clear patient broadcast messages and expired alarms
 cron.schedule("0 0 * * *", async () => {
   try {
+    // 1. Clear old broadcast messages
     await PatientMessage.deleteMany({});
     console.log("🧹 Cron Job: Cleared all patient broadcast messages for the new day.");
+
+    // 2. Clear expired AI medication alarms
+    const patients = await Patient.find({ "medication_alarms.0": { $exists: true } });
+    let expiredCount = 0;
+
+    for (let patient of patients) {
+      const now = new Date();
+      const originalLength = patient.medication_alarms.length;
+
+      patient.medication_alarms = patient.medication_alarms.filter((alarm) => {
+        const addedAt = new Date(alarm.addedAt);
+        // Add durationDays to addedAt
+        const expiresAt = new Date(addedAt);
+        expiresAt.setDate(expiresAt.getDate() + alarm.durationDays);
+        
+        // Keep if it hasn't expired yet
+        return expiresAt > now;
+      });
+
+      if (patient.medication_alarms.length !== originalLength) {
+        expiredCount += (originalLength - patient.medication_alarms.length);
+        await patient.save();
+      }
+    }
+    if (expiredCount > 0) {
+      console.log(`🧹 Cron Job: Cleared ${expiredCount} expired AI medication alarms.`);
+    }
+
   } catch (error) {
     console.error("❌ Cron Job Error:", error);
   }

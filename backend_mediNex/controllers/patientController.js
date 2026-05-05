@@ -920,10 +920,10 @@ export const clearMessage = async (req, res) => {
 };
 
 // ═══════════════════════════════════════════════════════════════════
-//  PHASE 14: AI MEDICATION ALARMS
+//  PHASE 14: AI MEDICATION ALARMS & PROFILE SETTINGS
 // ═══════════════════════════════════════════════════════════════════
 
-export const deleteMedicationAlarm = async (req, res) => {
+export const toggleMedicationAlarm = async (req, res) => {
   try {
     const { alarmId } = req.params;
     const patientId = req.user.id;
@@ -933,24 +933,148 @@ export const deleteMedicationAlarm = async (req, res) => {
       return res.status(404).json({ success: false, message: "Patient not found." });
     }
 
-    const alarmIndex = patient.medication_alarms.findIndex(
+    const alarm = patient.medication_alarms.find(
       (a) => a._id.toString() === alarmId
     );
 
-    if (alarmIndex === -1) {
+    if (!alarm) {
       return res.status(404).json({ success: false, message: "Alarm not found." });
     }
 
-    patient.medication_alarms.splice(alarmIndex, 1);
+    // Toggle isActive
+    alarm.isActive = !alarm.isActive;
     await patient.save();
 
     res.status(200).json({ 
       success: true, 
-      message: "Alarm turned off successfully.",
+      message: alarm.isActive ? "Alarm turned on." : "Alarm turned off.",
       medication_alarms: patient.medication_alarms
     });
   } catch (error) {
-    console.error("Delete Alarm Error:", error);
+    console.error("Toggle Alarm Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const updateMedicationAlarmTimes = async (req, res) => {
+  try {
+    const { alarmId } = req.params;
+    const { times } = req.body;
+    const patientId = req.user.id;
+
+    if (!Array.isArray(times)) {
+       return res.status(400).json({ success: false, message: "Times must be an array of strings." });
+    }
+
+    const patient = await Patient.findById(patientId);
+    if (!patient) {
+      return res.status(404).json({ success: false, message: "Patient not found." });
+    }
+
+    const alarm = patient.medication_alarms.find(
+      (a) => a._id.toString() === alarmId
+    );
+
+    if (!alarm) {
+      return res.status(404).json({ success: false, message: "Alarm not found." });
+    }
+
+    alarm.times = times;
+    patient.markModified("medication_alarms");
+    await patient.save();
+
+    res.status(200).json({ 
+      success: true, 
+      message: "Alarm times updated successfully.",
+      medication_alarms: patient.medication_alarms
+    });
+  } catch (error) {
+    console.error("Update Alarm Times Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const uploadPatientAvatar = async (req, res) => {
+  try {
+    const patientId = req.user.id;
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No image provided." });
+    }
+
+    const file_url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    
+    const patient = await Patient.findByIdAndUpdate(
+      patientId, 
+      { avatar: file_url }, 
+      { new: true }
+    ).select("-password");
+
+    if (!patient) {
+      return res.status(404).json({ success: false, message: "Patient not found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Avatar updated successfully.",
+      patient
+    });
+  } catch (error) {
+    console.error("Upload Avatar Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const uploadPatientRingtone = async (req, res) => {
+  try {
+    const patientId = req.user.id;
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "No audio file provided." });
+    }
+
+    const file_url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    
+    const patient = await Patient.findByIdAndUpdate(
+      patientId, 
+      { custom_ringtone: file_url }, 
+      { new: true }
+    ).select("-password");
+
+    if (!patient) {
+      return res.status(404).json({ success: false, message: "Patient not found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Ringtone updated successfully.",
+      patient
+    });
+  } catch (error) {
+    console.error("Upload Ringtone Error:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const deletePatientRingtone = async (req, res) => {
+  try {
+    const patientId = req.user.id;
+    
+    const patient = await Patient.findByIdAndUpdate(
+      patientId, 
+      { custom_ringtone: "" }, 
+      { new: true }
+    ).select("-password");
+
+    if (!patient) {
+      return res.status(404).json({ success: false, message: "Patient not found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Custom ringtone removed.",
+      patient
+    });
+  } catch (error) {
+    console.error("Delete Ringtone Error:", error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };

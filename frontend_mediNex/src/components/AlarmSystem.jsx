@@ -9,75 +9,74 @@ const AlarmSystem = () => {
   const [activeAlarm, setActiveAlarm] = useState(null); // stores the medicine that is ringing
   const audioRef = useRef(null);
   const timeoutRef = useRef(null);
-  const [alarms, setAlarms] = useState([]);
-
-  // Fetch Patient Profile to get alarms
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const { data } = await axios.get("http://localhost:4000/api/patient/profile", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (data.success && data.patient?.medication_alarms) {
-          setAlarms(data.patient.medication_alarms);
-        }
-      } catch (err) {
-        console.error("Failed to fetch alarms for alarm system", err);
-      }
-    };
-    if (token) fetchProfile();
-  }, [token]);
+  const [customRingtone, setCustomRingtone] = useState("");
 
   // The Alarm Checker Interval
   useEffect(() => {
-    if (!alarms.length) return;
+    if (!token) return;
 
     // Check every minute
-    const intervalId = setInterval(() => {
-      const now = new Date();
-      const currentHours = now.getHours().toString().padStart(2, "0");
-      const currentMinutes = now.getMinutes().toString().padStart(2, "0");
-      const timeString = `${currentHours}:${currentMinutes}`;
-
-      // Check if any active medicine matches the current time
-      const matchingMedicine = alarms.find(alarm => {
-        // Simple logic: If addedAt + durationDays > now, it's active
-        const addedAt = new Date(alarm.addedAt);
-        const expiresAt = new Date(addedAt);
-        expiresAt.setDate(expiresAt.getDate() + alarm.durationDays);
+    const intervalId = setInterval(async () => {
+      try {
+        // Fetch latest profile to ensure we have up-to-date alarm times
+        const { data } = await axios.get("http://localhost:4000/api/patient/profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
         
-        if (now <= expiresAt) {
-          return alarm.times.includes(timeString);
+        let currentAlarms = [];
+        if (data.success && data.patient) {
+          currentAlarms = data.patient.medication_alarms || [];
+          setCustomRingtone(data.patient.custom_ringtone || "");
         }
-        return false;
-      });
 
-      if (matchingMedicine && !activeAlarm) {
-        triggerAlarm(matchingMedicine);
+        const now = new Date();
+        const currentHours = now.getHours().toString().padStart(2, "0");
+        const currentMinutes = now.getMinutes().toString().padStart(2, "0");
+        const timeString = `${currentHours}:${currentMinutes}`;
+
+        // Check if any active medicine matches the current time
+        const matchingMedicine = currentAlarms.find(alarm => {
+          if (alarm.isActive === false) return false;
+
+          const addedAt = new Date(alarm.addedAt);
+          const expiresAt = new Date(addedAt);
+          expiresAt.setDate(expiresAt.getDate() + alarm.durationDays);
+          
+          if (now <= expiresAt) {
+            return alarm.times.includes(timeString);
+          }
+          return false;
+        });
+
+        if (matchingMedicine && !activeAlarm) {
+          triggerAlarm(matchingMedicine, data.patient.custom_ringtone);
+        }
+      } catch (err) {
+        console.error("Failed to fetch latest alarms", err);
       }
     }, 60000); // exactly 1 minute
 
     return () => clearInterval(intervalId);
-  }, [alarms, activeAlarm]);
+  }, [token, activeAlarm]);
 
-  const triggerAlarm = (medicine) => {
+  const triggerAlarm = (medicine, ringtoneUrl) => {
     setActiveAlarm(medicine);
 
-    // Play Audio
-    if (!audioRef.current) {
-      // Create audio object if it doesn't exist.
-      // Make sure you have alarm.mp3 in the public folder.
-      audioRef.current = new Audio("/alarm.mp3");
-      audioRef.current.loop = true;
+    const audioUrl = ringtoneUrl || "/alarm.mp3";
+
+    if (audioRef.current) {
+      audioRef.current.pause();
     }
+    audioRef.current = new Audio(audioUrl);
+    audioRef.current.loop = true;
     
     // Play with catch to avoid autoplay policy errors if user hasn't interacted
     audioRef.current.play().catch(e => console.warn("Browser blocked audio autoplay:", e));
 
-    // Enforce EXACTLY 20-second limit
+    // Enforce EXACTLY 30-second limit
     timeoutRef.current = setTimeout(() => {
       stopAlarm();
-    }, 20000);
+    }, 30000);
   };
 
   const stopAlarm = () => {
@@ -131,11 +130,11 @@ const AlarmSystem = () => {
             </button>
           </div>
           
-          {/* Progress Bar (20 seconds) */}
+          {/* Progress Bar (30 seconds) */}
           <motion.div 
              initial={{ width: "100%" }}
              animate={{ width: "0%" }}
-             transition={{ duration: 20, ease: "linear" }}
+             transition={{ duration: 30, ease: "linear" }}
              className="h-1.5 bg-indigo-500 w-full"
           />
         </motion.div>

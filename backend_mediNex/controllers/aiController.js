@@ -167,5 +167,14 @@ export const analyzePrescription = async (req, res) => {
   } catch (error) {
     console.error("Prescription Analyzer Error:", error);
     res.status(500).json({ success: false, message: error.message || "Failed to analyze prescription" });
+  } finally {
+    // Clean up the uploaded image file automatically so it doesn't pile up
+    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (err) {
+        console.error("Failed to delete temp prescription image:", err);
+      }
+    }
   }
 };

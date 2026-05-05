@@ -19,16 +19,16 @@ const storage = multer.diskStorage({
   },
 });
 
-// Allow images and PDFs
+// Allow images, PDFs, and audio files
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|webp|pdf/;
-  const allowedMimes = /jpeg|jpg|png|webp|pdf/;
+  const allowedTypes = /jpeg|jpg|png|webp|pdf|mp3|wav|mpeg|ogg|m4a|aac/;
+  const allowedMimes = /jpeg|jpg|png|webp|pdf|mp3|wav|mpeg|ogg|m4a|aac|audio/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = allowedMimes.test(file.mimetype);
   if (extname && mimetype) {
     return cb(null, true);
   }
-  cb(new Error("Only image files (jpg, png, webp) and PDFs are allowed."));
+  cb(new Error("Only image, pdf, and audio files are allowed."));
 };
 
 export const upload = multer({

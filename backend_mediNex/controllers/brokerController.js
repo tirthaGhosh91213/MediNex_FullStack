@@ -95,8 +95,8 @@ export const registerBroker = async (req, res) => {
       trade_license_number,
       clinic_location: locationData,
       clinic_address: clinic_address || "",
-      owner_aadhar: aadharFile ? `http://localhost:4000/uploads/${aadharFile.filename}` : "",
-      clinic_license: licenseFile ? `http://localhost:4000/uploads/${licenseFile.filename}` : "",
+      owner_aadhar: aadharFile ? aadharFile.path : "",
+      clinic_license: licenseFile ? licenseFile.path : "",
     });
 
     // 6. Generate JWT
@@ -275,7 +275,7 @@ export const addDoctor = async (req, res) => {
     const regCertFile = req.files?.['registration_certificate']?.[0];
 
     const buildFileUrl = (file) =>
-      file ? `http://localhost:4000/uploads/${file.filename}` : "";
+      file ? file.path : "";
 
     // Parse schedule JSON string from FormData
     let parsedSchedule = [];

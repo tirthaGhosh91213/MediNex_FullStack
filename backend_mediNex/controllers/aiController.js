@@ -1,6 +1,5 @@
 import OpenAI from "openai";
 import Patient from "../models/patientModel.js";
-import fs from "fs";
 
 // Initialize OpenRouter API
 const getOpenRouterModel = () => {
@@ -75,7 +74,7 @@ export const checkSymptoms = async (req, res) => {
 /**
  * Task 2: AI Prescription Analyzer
  * Route: POST /api/patient/ai/analyze-prescription
- * Middleware: multer upload
+ * Middleware: multer upload (Cloudinary)
  */
 export const analyzePrescription = async (req, res) => {
   try {
@@ -83,8 +82,14 @@ export const analyzePrescription = async (req, res) => {
       return res.status(400).json({ success: false, message: "No prescription image uploaded" });
     }
 
-    const base64Image = Buffer.from(fs.readFileSync(req.file.path)).toString("base64");
-    const dataUrl = `data:${req.file.mimetype};base64,${base64Image}`;
+    // With Cloudinary storage, req.file.path is the full Cloudinary CDN URL
+    const cloudinaryUrl = req.file.path;
+
+    // Fetch the image from Cloudinary and convert to base64 for the AI model
+    const imageResponse = await fetch(cloudinaryUrl);
+    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+    const base64Image = imageBuffer.toString("base64");
+    const dataUrl = `data:${req.file.mimetype || "image/jpeg"};base64,${base64Image}`;
 
     const openai = getOpenRouterModel();
     const systemPrompt = `Analyze this doctor's prescription. Extract the medicines, how many days to take them, and the time of day. Return ONLY a JSON array: [{"medicineName": "string", "durationDays": number, "times": ["08:00", "14:00", "20:00"]}]. Infer logical times if morning/afternoon/night are mentioned (e.g., Morning = "08:00", Afternoon = "14:00", Night = "20:00"). Do not wrap the JSON in Markdown formatting (no \`\`\`json). Just return the raw JSON array.`;
@@ -133,9 +138,6 @@ export const analyzePrescription = async (req, res) => {
       }
     } catch (parseError) {
       console.error("Prescription AI Parsing Error:", responseText);
-      // Clean up multer temp file if needed (Cloudinary might not have local file, wait...)
-      // Ah! We are using Cloudinary for uploads!
-      // Let's check how the file is stored.
       return res.status(500).json({ success: false, message: "AI response format was invalid." });
     }
 
@@ -167,14 +169,5 @@ export const analyzePrescription = async (req, res) => {
   } catch (error) {
     console.error("Prescription Analyzer Error:", error);
     res.status(500).json({ success: false, message: error.message || "Failed to analyze prescription" });
-  } finally {
-    // Clean up the uploaded image file automatically so it doesn't pile up
-    if (req.file && req.file.path && fs.existsSync(req.file.path)) {
-      try {
-        fs.unlinkSync(req.file.path);
-      } catch (err) {
-        console.error("Failed to delete temp prescription image:", err);
-      }
-    }
   }
 };

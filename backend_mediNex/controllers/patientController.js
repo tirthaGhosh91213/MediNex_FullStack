@@ -759,7 +759,7 @@ export const uploadHealthRecord = async (req, res) => {
     if (!patient) return res.status(404).json({ success: false, message: "Patient not found." });
 
     const newRecords = req.files.map((file, idx) => {
-      const file_url = `${req.protocol}://${req.get("host")}/uploads/${file.filename}`;
+      const file_url = file.path; // Cloudinary CDN URL
       const recordTitle = req.files.length > 1 ? `${title} (Page ${idx + 1})` : title;
       return { title: recordTitle, file_url };
     });
@@ -1001,7 +1001,7 @@ export const uploadPatientAvatar = async (req, res) => {
       return res.status(400).json({ success: false, message: "No image provided." });
     }
 
-    const file_url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    const file_url = req.file.path; // Cloudinary CDN URL
     
     const patient = await Patient.findByIdAndUpdate(
       patientId, 
@@ -1031,7 +1031,7 @@ export const uploadPatientRingtone = async (req, res) => {
       return res.status(400).json({ success: false, message: "No audio file provided." });
     }
 
-    const file_url = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+    const file_url = req.file.path; // Cloudinary CDN URL
     
     const patient = await Patient.findByIdAndUpdate(
       patientId, 

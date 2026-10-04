@@ -61,7 +61,7 @@ const AIAssistant = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [prescriptionResult, setPrescriptionResult] = useState(null);
 
-  const backendUrl = "http://localhost:4000";
+  const backendUrl = "https://medinex-fullstack-backend.onrender.com";
 
   // Handle Symptom Checker
   const handleCheckSymptoms = async (e) => {

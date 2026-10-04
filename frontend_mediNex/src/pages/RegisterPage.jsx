@@ -83,8 +83,8 @@ const RegisterPage = () => {
     
     try {
       const endpoint = role === "Patient" 
-        ? "http://localhost:4000/api/patient/register" 
-        : "http://localhost:4000/api/broker/register";
+        ? "https://medinex-fullstack-backend.onrender.com/api/patient/register" 
+        : "https://medinex-fullstack-backend.onrender.com/api/broker/register";
       
       let payload = formData;
       let headers = { "Content-Type": "application/json" };

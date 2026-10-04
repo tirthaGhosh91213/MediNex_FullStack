@@ -8,7 +8,7 @@ import { useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
 import { toast } from "react-hot-toast";
 
-const socket = io("http://localhost:4000");
+const socket = io("https://medinex-fullstack-backend.onrender.com");
 
 const PatientDashboard = () => {
   const [doctors, setDoctors] = useState([]);

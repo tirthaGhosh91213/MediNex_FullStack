@@ -20,7 +20,7 @@ const PatientLayout = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [messages, setMessages] = useState([]);
 
-  const backendUrl = "http://localhost:4000";
+  const backendUrl = "https://medinex-fullstack-backend.onrender.com";
 
   useEffect(() => {
     const fetchMessages = async () => {

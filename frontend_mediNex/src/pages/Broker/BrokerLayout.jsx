@@ -13,7 +13,7 @@ import axios from "axios";
 import { AnimatePresence } from "framer-motion";
 import EmergencyAlertModal from "../../components/EmergencyAlertModal";
 
-const socket = io("http://localhost:4000");
+const socket = io("https://medinex-fullstack-backend.onrender.com");
 
 const BrokerLayout = () => {
   const { user, logout } = useAuth();
@@ -30,7 +30,7 @@ const BrokerLayout = () => {
   const [notifications, setNotifications] = React.useState([]);
   const [showNotifications, setShowNotifications] = React.useState(false);
   const [emergencyAlert, setEmergencyAlert] = useState(null);
-  const backendUrl = "http://localhost:4000";
+  const backendUrl = "https://medinex-fullstack-backend.onrender.com";
 
   const fetchNotifications = async () => {
     try {

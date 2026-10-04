@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 import { toast } from "react-hot-toast";
 import axios from "axios";
 
-const socket = io("http://localhost:4000");
+const socket = io("https://medinex-fullstack-backend.onrender.com");
 import { useAuth } from "../../context/AuthContext";
 import { 
   Menu, X, LineChart, ShieldCheck, Database, 

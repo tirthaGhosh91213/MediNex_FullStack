@@ -9,7 +9,7 @@ const CHART_COLORS = ["#4f46e5", "#7c3aed", "#2563eb", "#0891b2", "#059669", "#d
 
 const ClinicPerformance = () => {
   const { token } = useAuth();
-  const backendUrl = "http://localhost:4000";
+  const backendUrl = "https://medinex-fullstack-backend.onrender.com";
 
   const [analyticsTab, setAnalyticsTab] = useState("today");
   const [analytics, setAnalytics] = useState(null);

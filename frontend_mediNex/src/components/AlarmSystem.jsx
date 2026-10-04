@@ -19,7 +19,7 @@ const AlarmSystem = () => {
     const intervalId = setInterval(async () => {
       try {
         // Fetch latest profile to ensure we have up-to-date alarm times
-        const { data } = await axios.get("http://localhost:4000/api/patient/profile", {
+        const { data } = await axios.get("https://medinex-fullstack-backend.onrender.com/api/patient/profile", {
           headers: { Authorization: `Bearer ${token}` }
         });
         

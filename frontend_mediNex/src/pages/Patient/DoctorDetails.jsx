@@ -20,7 +20,7 @@ const DoctorDetails = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
 
-  const backendUrl = "http://localhost:4000";
+  const backendUrl = "https://medinex-fullstack-backend.onrender.com";
 
   useEffect(() => {
     const fetchDoctorDetails = async () => {

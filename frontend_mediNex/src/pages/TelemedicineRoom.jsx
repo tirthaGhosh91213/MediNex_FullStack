@@ -86,7 +86,7 @@ const TelemedicineRoom = () => {
     try {
       // We don't have token because Doctor opens from email.
       // We rely on the public-ish endpoint we just created
-      const { data } = await axios.get(`http://localhost:4000/api/queue/doctor-session/${doctorId}/${roomId}`);
+      const { data } = await axios.get(`https://medinex-fullstack-backend.onrender.com/api/queue/doctor-session/${doctorId}/${roomId}`);
       if (data.success) {
         setDoctorInfo(data.doctor);
         // Exclude completed patients
@@ -137,7 +137,7 @@ const TelemedicineRoom = () => {
   }, [remoteStream]);
 
   const setupSocket = () => {
-    const newSocket = io("http://localhost:4000");
+    const newSocket = io("https://medinex-fullstack-backend.onrender.com");
     setSocket(newSocket);
 
     newSocket.on("connect", () => {

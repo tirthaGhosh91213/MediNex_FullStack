@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const OnlineSessions = () => {
   const { token } = useAuth();
-  const backendUrl = "http://localhost:4000";
+  const backendUrl = "https://medinex-fullstack-backend.onrender.com";
   
   const [groupedSessions, setGroupedSessions] = useState([]);
   const [loading, setLoading] = useState(true);

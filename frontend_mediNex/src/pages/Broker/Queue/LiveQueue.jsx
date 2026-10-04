@@ -5,7 +5,7 @@ import { Play, CheckCircle, AlertTriangle, MonitorPlay, Loader2 } from "lucide-r
 import { io } from "socket.io-client";
 
 // Connect to socket server
-const socket = io("http://localhost:4000");
+const socket = io("https://medinex-fullstack-backend.onrender.com");
 
 const LiveQueue = () => {
   const [doctors, setDoctors] = useState([]);

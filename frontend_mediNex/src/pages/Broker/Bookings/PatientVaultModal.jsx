@@ -14,7 +14,7 @@ const PatientVaultModal = ({ patientId, onClose }) => {
   const getFileUrl = (url) => {
     if (!url) return "";
     if (url.startsWith("http")) return url;
-    return `http://localhost:4000/${url}`;
+    return `https://medinex-fullstack-backend.onrender.com/${url}`;
   };
 
   const isPdf = (url) => url && url.toLowerCase().includes(".pdf");

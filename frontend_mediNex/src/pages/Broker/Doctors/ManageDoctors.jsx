@@ -43,7 +43,7 @@ async function getCroppedImg(imageSrc, pixelCrop) {
   });
 }
 
-const socket = io("http://localhost:4000");
+const socket = io("https://medinex-fullstack-backend.onrender.com");
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const SPECIALIZATIONS = [

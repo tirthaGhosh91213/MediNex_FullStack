@@ -17,7 +17,7 @@ const RatingModal = ({ isOpen, onClose, booking }) => {
       const fetchDoctor = async () => {
         try {
           const doctorId = booking.doctorId?._id || booking.doctorId;
-          const { data } = await axios.get(`http://localhost:4000/api/patient/doctors/${doctorId}`, {
+          const { data } = await axios.get(`https://medinex-fullstack-backend.onrender.com/api/patient/doctors/${doctorId}`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (data.success && data.doctor.ratings) {

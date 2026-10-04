@@ -24,7 +24,7 @@ const BookingModal = ({ doctor: initialDoctor, onClose }) => {
 
   const { token, user } = useAuth();
   const navigate = useNavigate();
-  const backendUrl = "http://localhost:4000";
+  const backendUrl = "https://medinex-fullstack-backend.onrender.com";
 
   // Fetch full doctor details and schedule
   useEffect(() => {

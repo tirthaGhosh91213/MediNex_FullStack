@@ -13,7 +13,7 @@ import { useAuth } from "../../context/AuthContext";
 import { io } from "socket.io-client";
 import { toast } from "react-hot-toast";
 
-const socket = io("http://localhost:4000");
+const socket = io("https://medinex-fullstack-backend.onrender.com");
 
 const MyBookings = () => {
   const { user } = useAuth();

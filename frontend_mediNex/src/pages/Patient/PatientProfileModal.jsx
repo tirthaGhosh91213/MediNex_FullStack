@@ -97,7 +97,7 @@ const PatientProfileModal = ({ isOpen, onClose }) => {
   const fetchProfile = async () => {
     setLoading(true);
     try {
-      const { data } = await axios.get("http://localhost:4000/api/patient/profile", {
+      const { data } = await axios.get("https://medinex-fullstack-backend.onrender.com/api/patient/profile", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (data.success) {
@@ -115,7 +115,7 @@ const PatientProfileModal = ({ isOpen, onClose }) => {
   const handleToggleAlarm = async (alarm) => {
     setTogglingId(alarm._id);
     try {
-      const { data } = await axios.put(`http://localhost:4000/api/patient/alarms/${alarm._id}/toggle`, {}, {
+      const { data } = await axios.put(`https://medinex-fullstack-backend.onrender.com/api/patient/alarms/${alarm._id}/toggle`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (data.success) {
@@ -152,7 +152,7 @@ const PatientProfileModal = ({ isOpen, onClose }) => {
       const formData = new FormData();
       formData.append("avatar", croppedBlob, "avatar.jpg");
 
-      const { data } = await axios.post("http://localhost:4000/api/patient/profile/avatar", formData, {
+      const { data } = await axios.post("https://medinex-fullstack-backend.onrender.com/api/patient/profile/avatar", formData, {
         headers: { 
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data" 
@@ -193,7 +193,7 @@ const PatientProfileModal = ({ isOpen, onClose }) => {
 
     setIsSavingTimes(true);
     try {
-      const { data } = await axios.put(`http://localhost:4000/api/patient/alarms/${alarmId}/times`, { times: editTimes }, {
+      const { data } = await axios.put(`https://medinex-fullstack-backend.onrender.com/api/patient/alarms/${alarmId}/times`, { times: editTimes }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (data.success) {
@@ -217,7 +217,7 @@ const PatientProfileModal = ({ isOpen, onClose }) => {
     formData.append("ringtone", file);
 
     try {
-      const { data } = await axios.post("http://localhost:4000/api/patient/profile/ringtone", formData, {
+      const { data } = await axios.post("https://medinex-fullstack-backend.onrender.com/api/patient/profile/ringtone", formData, {
         headers: { 
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data" 
@@ -239,7 +239,7 @@ const PatientProfileModal = ({ isOpen, onClose }) => {
   const handleRemoveRingtone = async () => {
     setIsUploadingRingtone(true);
     try {
-      const { data } = await axios.delete("http://localhost:4000/api/patient/profile/ringtone", {
+      const { data } = await axios.delete("https://medinex-fullstack-backend.onrender.com/api/patient/profile/ringtone", {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (data.success) {

@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // Default axios config
-  axios.defaults.baseURL = "http://localhost:4000/api";
+  axios.defaults.baseURL = "https://medinex-fullstack-backend.onrender.com/api";
   if (token) {
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   }

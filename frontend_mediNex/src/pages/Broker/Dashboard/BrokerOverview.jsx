@@ -6,7 +6,7 @@ import { useAuth } from "../../../context/AuthContext";
 
 const BrokerOverview = () => {
   const { token } = useAuth();
-  const backendUrl = "http://localhost:4000";
+  const backendUrl = "https://medinex-fullstack-backend.onrender.com";
 
   const [activeDoctors, setActiveDoctors] = useState([]);
   const [loading, setLoading] = useState(true);

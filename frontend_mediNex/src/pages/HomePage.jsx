@@ -38,7 +38,7 @@ const HomePage = () => {
         if (searchTerm) params.append("name", searchTerm);
         if (specialtyFilter) params.append("specialization", specialtyFilter);
 
-        const { data } = await axios.get(`http://localhost:4000/api/patient/doctors?${params.toString()}`);
+        const { data } = await axios.get(`https://medinex-fullstack-backend.onrender.com/api/patient/doctors?${params.toString()}`);
         if (data.success) {
           setDoctors(data.doctors);
         }

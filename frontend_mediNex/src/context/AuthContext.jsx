@@ -44,36 +44,37 @@ export const AuthProvider = ({ children }) => {
     fetchUser();
   }, [token, role]);
 
-  const login = async (email, password, loginRole) => {
-    try {
-      // The backend expects different routes based on the role
-      // For Phase 1 we have /patient/login, /broker/login, /admin/login
-      const endpoint = `/${loginRole.toLowerCase()}/login`;
-      
-      const { data } = await axios.post(endpoint, { email, password });
-      
-      if (data.success) {
-        // Find user data object in the response (it could be patient, broker, or admin)
-        const userData = data.patient || data.broker || data.admin;
+  const login = async (email, password) => {
+    const roles = ["Patient", "Broker", "Admin"];
+    
+    for (const loginRole of roles) {
+      try {
+        const endpoint = `/${loginRole.toLowerCase()}/login`;
+        const { data } = await axios.post(endpoint, { email, password });
         
-        setUser(userData);
-        setToken(data.token);
-        setRole(loginRole);
-        
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("role", loginRole);
-        
-        // Update axios header
-        axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
-        
-        toast.success(`Welcome back! Logged in as ${loginRole}`);
-        return { success: true, role: loginRole };
+        if (data.success) {
+          const userData = data.patient || data.broker || data.admin;
+          
+          setUser(userData);
+          setToken(data.token);
+          setRole(loginRole);
+          
+          localStorage.setItem("token", data.token);
+          localStorage.setItem("role", loginRole);
+          
+          axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+          
+          toast.success(`Welcome back! Logged in as ${loginRole}`);
+          return { success: true, role: loginRole };
+        }
+      } catch (error) {
+        // If it's a 404 or 401, we just continue to the next role
+        // If all roles fail, we'll show an error at the end
       }
-      return { success: false };
-    } catch (error) {
-      toast.error(error.response?.data?.message || "Invalid Credentials");
-      return { success: false, message: error.response?.data?.message };
     }
+    
+    toast.error("Invalid Credentials or Account Not Found");
+    return { success: false, message: "Invalid Credentials" };
   };
 
   const logout = () => {

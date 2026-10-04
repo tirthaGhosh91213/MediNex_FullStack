@@ -10,6 +10,7 @@ import adminRouter from "./routes/adminRoutes.js";
 import brokerRouter from "./routes/brokerRoutes.js";
 import patientRouter from "./routes/patientRoutes.js";
 import queueRouter from "./routes/queueRoutes.js";
+import authRouter from "./routes/authRoutes.js";
 import cron from "node-cron";
 import PatientMessage from "./models/patientMessageModel.js";
 import Booking from "./models/bookingModel.js";
@@ -183,6 +184,7 @@ app.use("/api/admin", adminRouter);     // Admin auth + approval + verification
 app.use("/api/broker", brokerRouter);   // Broker auth + doctors + booking management
 app.use("/api/patient", patientRouter); // Patient auth + search + booking
 app.use("/api/queue", queueRouter);     // Live queue tracker (public)
+app.use("/api/auth", authRouter);       // General Auth (OTP, Reset Password)
 
 // ── 404 Handler ─────────────────────────────────────────────────
 app.use((req, res) => {
